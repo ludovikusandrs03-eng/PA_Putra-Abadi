@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Putra Abadi Sport Center</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;0,800;1,800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+    
+    <link rel="stylesheet" href="assets/css/main.css"/>
+</head>
+<body>
+    <nav>
+        <a class="nav-brand" href="#" onclick="openAdminLoginModal(event)">
+            <img src="assets/images/pa_logo.png" alt="Logo Putra Abadi" class="nav-logo-img"/>
+            <div class="nav-brand-text">
+                <span>Putra Abadi</span>
+                <span>Sport Center</span>
+            </div>
+        </a>
+        <div class="nav-links" id="main-nav-links">
+            <a href="#" class="active" onclick="navigateToUserSection(this)">Home</a>
+            <a href="#courts" onclick="navigateToUserSection(this)">Booking</a>
+            <a href="#features" onclick="navigateToUserSection(this)">Membership</a>
+        </div>
+        <button class="btn-member" id="nav-member-btn" onclick="openMemberModal()">
+            <i class="ti ti-user"></i> <span id="member-status-text">Login</span>
+        </button>
+    </nav>
+
+    <div id="user-page-content">
+        <section id="hero">
+            <div class="hero-bg"></div>
+            <div class="hero-pattern"></div>
+            <div class="hero-content">
+                <div class="hero-eyebrow">Pilih Lapangan Favoritmu</div>
+                <h1 class="hero-title">SIAP BERMAIN,<br><span>SIAP MENANG!!!</span></h1>
+                <p class="hero-sub">Booking lapangan basket terbaik di Salatiga. Dua lapangan full court siap digunakan kapan saja.</p>
+                <div class="hero-actions">
+                    <a href="#courts" class="btn-primary"><i class="ti ti-calendar"></i> Booking Sekarang</a>
+                </div>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-num">2</div>
+                    <div class="stat-label">Lapangan</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num">10.00 - 22.00</div>
+                    <div class="stat-label">Jam Buka</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="courts">
+            <div class="courts-header">
+                <div class="section-eyebrow"><i class="ti ti-ball-basketball"></i> Pilih Lapangan</div>
+                <h2 class="section-title">DUA <span>LAPANGAN</span> BASKET</h2>
+            <div class="courts-grid">
+                <div class="court-card" id="court-card-1">
+                    <div class="court-img-wrap">
+                        <img src="assets/images/court2.jpg" alt="Lapangan Basket 1" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+                        <div class="court-badge">
+                            <div class="court-badge-label">Lapangan</div>
+                            <div class="court-badge-num">01</div>
+                        </div>
+                        <div class="court-overlay"><span class="court-overlay-tag">Indoor · Lantai Vinyl Biru</span></div>
+                    </div>
+                    <div class="court-body">
+                        <div class="court-name">Lapangan Basket 1</div>
+                        <div class="court-type">Full Court · Vinyl Biru Premium</div>
+                        <div class="court-features">
+                            <div class="feat-item"><i class="ti ti-grid-dots"></i><div class="feat-label"><strong>Vinyl Indoor</strong><span>Lantai Berkualitas</span></div></div>
+                            <div class="feat-item"><i class="ti ti-clock"></i><div class="feat-label"><strong>10.00 – 22.00</strong><span>Jam Operasional</span></div></div>
+                            <div class="feat-item"><i class="ti ti-shield-check"></i><div class="feat-label"><strong>Harga Normal</strong><span>Rp 100.000 / Jam</span></div></div>
+                        </div>
+                        <div class="court-availability">
+                            <span class="avail-pill avail-green" id="avail-1"><i class="ti ti-circle-check"></i> <span>— Tersedia</span></span>
+                            <span class="avail-pill avail-red" id="booked-1"><i class="ti ti-circle-x"></i> <span>— Penuh</span></span>
+                        </div>
+                        <button class="btn-cek" onclick="openModal(1)">
+                            <i class="ti ti-calendar-event"></i> Cek Jadwal <i class="ti ti-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="court-card" id="court-card-2">
+                    <div class="court-img-wrap">
+                        <img src="assets/images/court1.jpg" alt="Lapangan Basket 2" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+                        <div class="court-badge">
+                            <div class="court-badge-label">Lapangan</div>
+                            <div class="court-badge-num">02</div>
+                        </div>
+                        <div class="court-overlay"><span class="court-overlay-tag">Indoor · Lantai Kayu</span></div>
+                    </div>
+                    <div class="court-body">
+                        <div class="court-name">Lapangan Basket 2</div>
+                        <div class="court-type">Full Court · Lantai Kayu Premium</div>
+                        <div class="court-features">
+                            <div class="feat-item"><i class="ti ti-grid-dots"></i><div class="feat-label"><strong>Lantai Kayu</strong><span>Parquet Premium</span></div></div>
+                            <div class="feat-item"><i class="ti ti-clock"></i><div class="feat-label"><strong>10.00 – 22.00</strong><span>Jam Operasional</span></div></div>
+                            <div class="feat-item"><i class="ti ti-shield-check"></i><div class="feat-label"><strong>Harga Normal</strong><span>Rp 100.000 / Jam</span></div></div>
+                        </div>
+                        <div class="court-availability">
+                            <span class="avail-pill avail-green" id="avail-2"><i class="ti ti-circle-check"></i> <span>— Tersedia</span></span>
+                            <span class="avail-pill avail-red" id="booked-2"><i class="ti ti-circle-x"></i> <span>— Penuh</span></span>
+                        </div>
+                        <button class="btn-cek" onclick="openModal(2)">
+                            <i class="ti ti-calendar-event"></i> Cek Jadwal <i class="ti ti-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features">
+            <div class="features-inner">
+                <div style="text-align:center; margin-bottom:3rem;">
+                    <div class="section-eyebrow"><i class="ti ti-star"></i> Kenapa Kami</div>
+                    <h2 class="section-title">KEUNGGULAN <span>KAMI</span></h2>
+                </div>
+                <div class="features-grid">
+                    <div class="feat-card">
+                        <div class="feat-icon"><i class="ti ti-calendar-check"></i></div>
+                        <h3>Booking Online</h3>
+                        <p>Pesan lapangan kapan saja dan di mana saja. Mudah, cepat, dan konfirmasi instan.</p>
+                    </div>
+                    
+                    <div class="feat-card" style="display: flex; flex-direction: column; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div class="feat-icon"><i class="ti ti-crown"></i></div>
+                            <h3>Potongan Member</h3>
+                            <p style="margin-bottom: 1.5rem;">Daftar member sekali (20k), nikmati potongan langsung sebesar 20k setiap kali booking lapangan!</p>
+                        </div>
+                        <button id="join-member-btn" class="btn-primary" style="padding: 10px 20px; font-size: 13px; width: 100%; max-width: 220px; margin-top: auto; display: none;" onclick="joinMemberClick()">
+                            <i class="ti ti-id-badge"></i> Join Member Sekarang
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section id="admin-dashboard" style="display: none; padding-top: 100px; min-height: 85vh; background: var(--dark);">
+        <div class="admin-container" style="max-width: 1100px; margin: 0 auto; padding: 0 1rem;">
+
+            <div id="panel-booking" class="admin-panel">
+                <div class="admin-stats-grid" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom:20px;">
+                    <div class="admin-stat-card-simple">
+                        <span>Sudah Diterima (DP)</span>
+                        <h3 id="count-confirmed-dp">—</h3>
+                    </div>
+                    <div class="admin-stat-card-simple">
+                        <span>Lunas</span>
+                        <h3 id="count-settled">—</h3>
+                    </div>
+                </div>
+
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Lap</th>
+                                <th>Jam Sesi</th>
+                                <th>Nama Pemesan</th>
+                                <th>Status</th>
+                                <th style="text-align: center;">INFORMASI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-booking-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-schedule" class="admin-panel" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
+                    <div style="font-size:14px; font-weight:700; color:#fff;">Kelola Jadwal Lapangan</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <select id="schedule-select-court" class="bform-input" style="width: 140px; padding: 6px;" onchange="renderAdminSchedule()">
+                            <option value="1">Lapangan 1</option>
+                            <option value="2">Lapangan 2</option>
+                        </select>
+                        <select id="schedule-select-date" class="bform-input" style="width: 160px; padding: 6px;" onchange="renderAdminSchedule()">
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Jam Sesi</th>
+                                <th>Status</th>
+                                <th>Penyewa</th>
+                                <th>No. HP</th>
+                                <th>Total Tarif</th>
+                                <th style="text-align: center;">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-schedule-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-member" class="admin-panel" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <div style="font-size:14px; font-weight:700; color:#fff;">Daftar Anggota Aktif</div>
+                    <button class="btn-admin-action-solid" onclick="openAddMemberPrompt()">+ Tambah Member</button>
+                </div>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Nama Pengguna</th>
+                                <th>No. WhatsApp</th>
+                                <th style="text-align: center;">KONTROL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-member-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="panel-report" class="admin-panel" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
+                    <div style="font-size:14px; font-weight:700; color:#fff;">Laporan Keuangan & Penjualan</div>
+                    <div style="display:flex; gap: 8px; align-items: center;">
+                        <select id="report-time-filter" class="bform-input" style="width: 170px; padding: 6px;" onchange="handleReportFilterChange()">
+                            <option value="all">Semua Periode</option>
+                            <option value="daily">Harian (Hari Ini)</option>
+                            <option value="weekly">Mingguan (Minggu Ini)</option>
+                            <option value="monthly">Bulanan (Bulan Ini)</option>
+                            <option value="yearly">Tahunan (Tahun Ini)</option>
+                        </select>
+                        <button id="btn-report-calendar" class="btn-admin-action-solid" style="padding: 6px 10px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; height: 34px; background: #222; border: 1px solid #444;" onclick="triggerReportDatePicker()">
+                            <i class="ti ti-calendar" style="font-size: 18px; color: #fff;"></i>
+                        </button>
+                        <input type="date" id="report-date-picker" style="position: absolute; opacity: 0; width: 0; height: 0; border: none; pointer-events: none; padding: 0; margin: 0;" onchange="handleReportDatePickerChange(this.value)" />
+                    </div>
+                </div>
+                <div class="admin-stats-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:20px; align-items:center;">
+                    <div class="admin-stat-card-simple">
+                        <span>Kas Masuk Riil</span>
+                        <h3 id="report-total-revenue" style="color:#fff;">Rp 0</h3>
+                    </div>
+                    <div class="admin-stat-card-simple">
+                        <span>Sisa Piutang Lapangan</span>
+                        <h3 id="report-remaining-pip">—</h3>
+                    </div>
+                    <button class="btn-admin-action-solid" style="height:100%; border-radius:6px; font-size:13px;" onclick="exportReportToExcel()">
+                        <i class="ti ti-download"></i> Ekspor ke Excel (.csv)
+                    </button>
+                </div>
+
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Keterangan Lapangan</th>
+                                <th>Penyewa</th>
+                                <th>Total Tarif</th>
+                                <th>Masuk Kas</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-report-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="modal-backdrop" id="admin-action-modal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header" style="padding:12px 16px;">
+                <h2 id="adm-modal-title" style="font-family:'Barlow'; font-size:16px; font-weight:700; color:#fff;">Konfirmasi</h2>
+                <button class="btn-close" onclick="closeAdminActionModal()"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="modal-body" id="adm-modal-body" style="padding:16px;">
+            </div>
+        </div>
+    </div>
+
+    <footer style="background: #000000; padding: 50px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: flex-start; margin-top: 50px; flex-wrap: wrap; gap: 2rem;">
+        <div style="max-width: 300px;">
+            <img src="assets/images/pa_logo.png" style="height: 45px; margin-bottom: 15px;" alt="Logo Putra Abadi"/>
+            <h2 style="font-family:'Bebas Neue', sans-serif; color:#ffb4a2; font-size: 32px; line-height: 1; letter-spacing: 1px; margin-bottom: 10px;">PUTRA ABADI SPORT<br>CENTER</h2>
+            <p style="color: #999; font-size: 13px; line-height: 1.6;">Tempat terbaik untuk berlatih dan berkompetisi.</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="font-size: 12px; font-weight: 700; color: #cca5a5; letter-spacing: 2px; margin-bottom: 15px;">IKUTI KAMI</div>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <a href="#" style="width:40px; height:40px; border-radius:50%; background:transparent; border:1px solid #333; color:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none;"><i class="ti ti-users"></i></a>
+                <a href="#" style="width:40px; height:40px; border-radius:50%; background:transparent; border:1px solid #333; color:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none;"><i class="ti ti-world"></i></a>
+                <a href="#" style="width:40px; height:40px; border-radius:50%; background:transparent; border:1px solid #333; color:#fff; display:flex; align-items:center; justify-content:center; text-decoration:none;"><i class="ti ti-message"></i></a>
+            </div>
+        </div>
+
+        <div style="text-align: right;">
+            <div style="font-weight: 700; color: #fff; margin-bottom: 5px; font-size: 14px;">Jl. Jend. Sudirman No.196, Gendongan, Kec. Tingkir</div>
+            <div style="color: #999; font-size: 12px; margin-bottom: 20px;">Salatiga, Jawa Tengah</div>
+            <div style="color: #666; font-size: 11px;">© 2026 Putra Abadi Sport Center. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <div class="modal-backdrop" id="member-modal" onclick="closeMemberModalOutside(event)">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 style="font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase;"><i class="ti ti-id-badge"></i> Area Membership</h2>
+                <button class="btn-close" onclick="closeMemberModal()"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="member-choice-screen">
+                    <div id="guest-choice-box">
+                        <p style="text-align: center; margin-bottom: 1.5rem; color: var(--text-muted);">Apakah Anda sudah terdaftar sebagai member resmi Putra Abadi Sport Center?</p>
+                        <button class="btn-confirm" style="margin-bottom: 12px;" onclick="switchMemberView('login')">Sudah Punya Akun / Admin</button> 
+                        <button class="btn-outline" style="width: 100%; display: block;" onclick="switchMemberView('register')">Belum Punya Member</button>
+                    </div>
+                    
+                    <div id="logged-in-box" style="display: none; text-align: center;">
+                        <p id="logged-in-box-title" style="color: #4ade80; font-weight: 700; margin-bottom: 8px;">✓ Anda sedang login sebagai Member</p>
+                        <p id="logged-member-info" style="font-size: 13px; margin-bottom: 12px;"></p>
+                        <button id="modal-member-action-btn" class="btn-confirm" style="margin-top: 0; margin-bottom: 12px; padding: 10px; width: 100%; font-size: 14px;" onclick="switchMemberView('upgrade')">Perpanjang Membership</button>
+                        <button id="modal-edit-profile-btn" class="btn-confirm" style="margin-top: 0; margin-bottom: 16px; padding: 10px; width: 100%; font-size: 14px; background: #3b82f6; border-color: #3b82f6;" onclick="openEditProfileForm()">✏️ Edit Profile</button>
+                        <button class="btn-outline" style="border-color: var(--red); color: var(--red-bright); padding: 8px 16px; display: block; margin: 0 auto;" onclick="logoutMember()">Log Out</button>
+                    </div>
+                </div>
+
+                <form id="member-login-form" style="display: none;" onsubmit="event.preventDefault(); loginMemberProcess()">
+                    <h3 class="bform-title">🔑 Login Akses</h3>
+                    <div class="bform-group" style="margin-bottom: 12px;">
+                        <label class="bform-label">Username / Nama Anda</label>
+                        <input class="bform-input" id="log-username" placeholder="Masukkan nama terdaftar atau 'admin'..."/>
+                    </div>
+                    <div class="bform-group" style="margin-bottom: 1.5rem;">
+                        <label class="bform-label">Password</label>
+                        <input class="bform-input" type="password" id="log-password" placeholder="******"/>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button type="submit" class="btn-confirm" style="margin-top:0; flex:1;">Masuk Aplikasi</button>
+                    </div>
+                    <div style="text-align: center; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                        <span style="font-size: 13px; color: var(--text-muted);">Belum punya akun? </span>
+                        <a href="#" style="color: var(--red-bright); font-size: 13px; font-weight: 700; text-decoration: none;" onclick="event.preventDefault(); switchMemberView('register')">Daftar</a>
+                    </div>
+                </form>
+
+                <form id="admin-login-form" style="display: none;" onsubmit="event.preventDefault(); loginAdminProcess()">
+                    <h3 class="bform-title" style="color: var(--red-bright);">🔐 Login Admin</h3>
+                    <div class="bform-group" style="margin-bottom: 12px;">
+                        <label class="bform-label">Username Admin</label>
+                        <input class="bform-input" id="admin-log-username" placeholder="Masukkan username admin..."/>
+                    </div>
+                    <div class="bform-group" style="margin-bottom: 1.5rem;">
+                        <label class="bform-label">Password</label>
+                        <input class="bform-input" type="password" id="admin-log-password" placeholder="******"/>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="btn-confirm" style="margin-top:0; flex:1; background: var(--red-dark);">Masuk sebagai Admin</button>
+                    </div>
+                </form>
+
+                <form id="member-register-form" style="display: none;" onsubmit="event.preventDefault(); registerMemberProcess()">
+                    <h3 class="bform-title">📝 Pendaftaran Akun Baru</h3>
+                    <div class="bform-group" style="margin-bottom: 10px;">
+                        <label class="bform-label">Nama Lengkap</label>
+                        <input class="bform-input" id="reg-name" placeholder="Nama Anda (akan jadi username)..."/>
+                    </div>
+                    <div class="bform-group" style="margin-bottom: 10px;">
+                        <label class="bform-label">Nomor HP</label>
+                        <input class="bform-input" id="reg-phone" placeholder="08xx-xxxx-xxxx"/>
+                    </div>
+                    <div class="bform-group" style="margin-bottom: 1.5rem;">
+                        <label class="bform-label">Buat Password</label>
+                        <input class="bform-input" type="password" id="reg-password" placeholder="Min. 4 karakter..."/>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button type="submit" class="btn-confirm" style="margin-top:0; flex:1;">Buat Akun & Daftar</button>
+                    </div>
+                    <div style="text-align: center; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px;">
+                        <span style="font-size: 13px; color: var(--text-muted);">Sudah punya akun? </span>
+                        <a href="#" style="color: var(--red-bright); font-size: 13px; font-weight: 700; text-decoration: none;" onclick="event.preventDefault(); switchMemberView('login')">Login</a>
+                    </div>
+                </form>
+
+                <div id="member-upgrade-form" style="display: none;">
+                    <h3 class="bform-title">👑 Pendaftaran Member Resmi</h3>
+                    <p style="font-size: 12px; color: #4ade80; background: rgba(22,163,74,0.1); border: 1px solid rgba(22,163,74,0.2); padding: 8px; border-radius: 6px; margin-bottom: 15px; line-height: 1.4;">
+                        Biaya pendaftaran/perpanjangan: <strong>Rp 20.000</strong>. Dapatkan potongan harga <strong>Rp 20.000 / jam</strong> untuk setiap booking lapangan selama 1 bulan!
+                    </p>
+                    
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1.25rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+                        <div style="font-size: 24px; color: #4ade80;"><i class="ti ti-shield-check"></i></div>
+                        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; text-transform: uppercase;">Pembayaran Instan Midtrans</div>
+                        <p style="font-size: 11px; color: #aaa; margin: 0; line-height: 1.4;">Bayar pendaftaran sebesar <strong>Rp 20.000</strong> secara instan via QRIS, GoPay, ShopeePay, dll. Akun member aktif secara otomatis!</p>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button class="btn-outline" style="padding: 10px;" onclick="switchMemberView('choice')"><i class="ti ti-arrow-left"></i> Kembali</button>
+                        <button class="btn-confirm" id="btn-pay-member-midtrans" style="margin-top:0; flex:1;" onclick="payMembershipWithMidtrans()">Bayar & Aktifkan Member</button>
+                    </div>
+                </div>
+
+                <form id="member-edit-profile-form" style="display: none;" onsubmit="event.preventDefault(); saveProfileChanges()">
+                    <h3 class="bform-title">✏️ Edit Profile</h3>
+                    <div class="bform-group" style="margin-bottom: 12px;">
+                        <label class="bform-label">Nama Lengkap / Username</label>
+                        <input class="bform-input" id="edit-name" placeholder="Masukkan nama baru..."/>
+                    </div>
+                    <div class="bform-group" style="margin-bottom: 12px;">
+                        <label class="bform-label">Nomor WhatsApp / HP</label>
+                        <input class="bform-input" id="edit-phone" placeholder="08xx-xxxx-xxxx"/>
+                    </div>
+                    <div class="bform-group" style="margin-bottom: 1.5rem;">
+                        <label class="bform-label">Password Baru</label>
+                        <input class="bform-input" type="password" id="edit-password" placeholder="******"/>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <button type="button" class="btn-outline" style="padding: 10px; flex: 1;" onclick="switchMemberView('choice')"><i class="ti ti-arrow-left"></i> Kembali</button>
+                        <button type="submit" class="btn-confirm" style="margin-top:0; flex: 2;">Simpan Perubahan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="modal" onclick="closeModalOutside(event)">
+        <div class="modal" id="modal-inner">
+            <div class="modal-header">
+                <div class="modal-court-info">
+                    <div class="modal-court-badge">
+                        <span>LAP</span><span id="modal-num">01</span>
+                    </div>
+                    <div class="modal-title-group">
+                        <h2 id="modal-name">Lapangan Basket 1</h2>
+                        <p id="modal-sub">Indoor · Vinyl Premium</p>
+                    </div>
+                </div>
+                <button class="btn-close" onclick="closeModal()"><i class="ti ti-x"></i></button>
+            </div>
+            
+            <div class="modal-body">
+                <div id="booking-member-alert" class="member-alert-box">
+                    💡 <strong>Keuntungan Member:</strong> Anda akan mendapatkan potongan langsung sebesar <strong>Rp 20.000 / Jam</strong> karena Anda terdaftar sebagai member resmi!
+                </div>
+
+                <div class="modal-section-title">📅 Pilih Tanggal Bermain</div>
+                <div class="days-container" id="days-container"></div>
+                
+                <div class="modal-section-title">⏰ Pilih Jam Tersedia</div>
+                <div class="slots-grid" id="slots-grid"></div>
+                
+                <div id="identity-section" style="display: none; border-top: 1px dashed rgba(255,255,255,0.1); padding-top:1.5rem; margin-top:0.5rem;">
+                    <div class="modal-section-title">👤 Data Penyewa</div>
+                    <div class="bform-row">
+                        <div class="bform-group">
+                            <label class="bform-label">Nama Lengkap Pemesan</label>
+                            <input class="bform-input" id="inp-name" placeholder="Masukkan nama Anda..."/>
+                        </div>
+                        <div class="bform-group">
+                            <label class="bform-label">Nomor WhatsApp / HP</label>
+                            <input class="bform-input" id="inp-phone" placeholder="08xx-xxxx-xxxx"/>
+                        </div>
+                    </div>
+                    <button class="btn-confirm" id="btn-next-payment" onclick="processToPayment()">Lanjut Ke Pembayaran <i class="ti ti-arrow-right"></i></button>
+                </div>
+                
+                <div id="payment-section" style="display: none; border-top: 1px solid rgba(255,255,255,0.1); padding-top:1.5rem; margin-top:1.5rem;">
+                    <div class="modal-section-title">💳 Pembayaran Online Otomatis (DP Minimal Rp 50.000)</div>
+                    <div class="payment-layout">
+                        <div class="payment-details">
+                            <div class="summary-card">
+                                <div class="summary-title">Rincian Reservasi</div>
+                                <div class="summary-row"><span>Sewa Lapangan</span><span id="sum-court-name">Lapangan 1</span></div>
+                                <div class="summary-row"><span>Waktu Main</span><span id="sum-time">Senin, 10:00 - 11:00</span></div>
+                                <div class="summary-row"><span>Harga Sewa</span><span id="sum-price-base">Rp 100.000</span></div>
+                                <div class="summary-row" style="border-top:1px dashed #333; padding-top:6px; margin-top:6px; font-weight:700; color:#4ade80;"><span>Biaya DP (Bayar Online)</span><span>Rp 50.000</span></div>
+                                <div class="summary-total"><span>Sisa Pelunasan di Lokasi</span><span id="sum-total">Rp 50.000</span></div>
+                            </div>
+                            <button class="btn-confirm" id="btn-pay-midtrans" onclick="payWithMidtrans()"><i class="ti ti-credit-card"></i> Bayar DP Sekarang</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SIMULASI PEMBAYARAN MIDTRANS (FALLBACK MOCK MODE) -->
+    <div class="modal-backdrop" id="simulation-modal" onclick="closeSimulationModalOutside(event)" style="display: none; z-index: 500;">
+        <div class="modal" id="simulation-modal-inner" style="max-width: 400px; border: 2px solid #ff5e00; background: #121212; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 1.5rem; border-radius: 8px;">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <div class="modal-title" style="color: #ff5e00; display: flex; align-items: center; gap: 8px; font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+                    <i class="ti ti-terminal-2"></i> Simulator Midtrans
+                </div>
+                <button class="btn-close" style="background: none; border: none; color: #fff; font-size: 20px; cursor: pointer;" onclick="closeSimulationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; line-height: 1.5; color: #ccc; margin-bottom: 15px;">
+                    Anda sedang berada dalam <strong>Mode Simulasi</strong> karena kredensial API Midtrans belum diisi lengkap di file `.env`.
+                </p>
+                <div style="background: rgba(255, 94, 0, 0.05); border: 1px solid rgba(255, 94, 0, 0.15); padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 12px; color: #fff;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #888;">Order ID:</span>
+                        <strong id="sim-order-id">BOOK-12345</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="color: #888;">Nominal:</span>
+                        <strong id="sim-amount" style="color: #4ade80;">Rp 50.000</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: #888;">Keterangan:</span>
+                        <strong id="sim-type">DP Booking Lapangan</strong>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button class="btn-confirm" style="background: #ff5e00; margin: 0; box-shadow: 0 4px 12px rgba(255, 94, 0, 0.2);" onclick="simulatePaymentSuccess()"><i class="ti ti-circle-check"></i> Simulasikan Bayar Sukses</button>
+                    <button class="btn-outline" style="border-color: #f87171; color: #f87171; width: 100%; text-transform: uppercase; font-weight: bold; font-size: 12px; padding: 10px;" onclick="simulatePaymentCancel()"><i class="ti ti-circle-x"></i> Batalkan / Gagal</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Midtrans Snap client library -->
+    <script type="text/javascript" src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-3y3YPsWBVBakp7MW"></script>
+    <script src="assets/js/main.js"></script>
+</body>
+</html>
