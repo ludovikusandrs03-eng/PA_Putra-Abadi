@@ -46,6 +46,7 @@
   "daniel": {
     "phone": "081233122575",
     "password": "daniel",
-    "isMember": false
+    "isMember": true,
+    "expiryDate": "2026-08-07T05:51:56.537Z"
   }
 }

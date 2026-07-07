@@ -1,0 +1,101 @@
+/* ================= SIMPLE & TONED DOWN ADMIN DESIGN ================= */
+.admin-stat-card-simple {
+    background: #1c1c1c;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px 24px;
+    border-radius: 4px;
+}
+.admin-stat-card-simple span {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    display: block;
+}
+.admin-stat-card-simple h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    font-weight: 400;
+    color: #fff;
+    margin-top: 5px;
+    line-height: 1;
+}
+
+.admin-table-wrapper {
+    background: #161616;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 6px;
+    padding: 8px;
+    overflow-x: auto;
+}
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+.admin-table th {
+    background: transparent;
+    color: #999;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 800;
+    padding: 16px 12px;
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.admin-table td {
+    padding: 16px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    color: #fff;
+    background: transparent;
+}
+.admin-table tbody tr:hover { background: rgba(255,255,255,0.01); }
+
+/* TOMBOL CEK HIJAU GRADIEN */
+.btn-cek-info {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: #fff;
+    border: none;
+    padding: 6px 30px;
+    border-radius: 6px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    transition: all 0.2s ease;
+}
+.btn-cek-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-icon-action {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+.btn-icon-action:hover { background: rgba(255,255,255,0.05); }
+.text-green { color: #4ade80; }
+.text-red { color: #f87171; }
+.text-white { color: #fff; }
+
+.btn-admin-action-solid {
+    background: #fff;
+    color: #000;
+    border: none;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: opacity 0.15s;
+}
+.btn-admin-action-solid:hover { opacity: 0.9; }

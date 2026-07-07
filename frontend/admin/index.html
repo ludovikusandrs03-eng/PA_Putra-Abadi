@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Admin Portal · Putra Abadi Sport Center</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;0,800;1,800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css"/>
+    
+    <link rel="stylesheet" href="css/base.css"/>
+    <link rel="stylesheet" href="css/login.css"/>
+    <link rel="stylesheet" href="css/dashboard.css"/>
+</head>
+<body>
+    <!-- ── ADMIN LOGIN SCREEN ── -->
+    <div id="admin-login-screen" class="login-wrapper">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2 style="font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase;"><i class="ti ti-id-badge"></i> Area Membership</h2>
+                <button class="btn-close" onclick="window.location.href='../utama/index.html'"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="admin-login-form" onsubmit="event.preventDefault(); handleLoginProcess()">
+                    <h3 class="bform-title">🔐 LOGIN ADMIN</h3>
+                    <div class="bform-group" style="margin-bottom: 12px;">
+                        <label class="bform-label">Username Admin</label>
+                        <input class="bform-input" id="admin-log-username" placeholder="Masukkan username admin..." required autocomplete="username"/>
+                    </div>
+                    <div class="bform-group" style="margin-bottom: 1.5rem;">
+                        <label class="bform-label">Password</label>
+                        <input class="bform-input" type="password" id="admin-log-password" placeholder="******" required autocomplete="current-password"/>
+                    </div>
+                    <button type="submit" class="btn-confirm">Masuk sebagai Admin</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── ADMIN DASHBOARD SCREEN ── -->
+    <div id="admin-dashboard-screen" style="display: none;">
+        <nav>
+            <a class="nav-brand" href="../utama/index.html">
+                <img src="../utama/images/pa_logo.png" alt="Logo Putra Abadi" class="nav-logo-img"/>
+                <div class="nav-brand-text">
+                    <span>Putra Abadi</span>
+                    <span>Sport Center</span>
+                </div>
+            </a>
+            <div class="nav-links" id="main-nav-links">
+                <a href="#" data-tab="booking" class="active" onclick="handleAdminNavClick(event, 'booking')">Reservasi</a>
+                <a href="#" data-tab="schedule" onclick="handleAdminNavClick(event, 'schedule')">Jadwal</a>
+                <a href="#" data-tab="member" onclick="handleAdminNavClick(event, 'member')">Membership</a>
+                <a href="#" data-tab="report" onclick="handleAdminNavClick(event, 'report')">Laporan</a>
+            </div>
+            <button class="btn-member" id="logout-admin-btn" style="background: #333;" onclick="openAdminLogoutModal()">
+                ADMIN
+            </button>
+        </nav>
+
+        <section id="admin-dashboard" style="padding-top: 100px; min-height: 85vh; background: var(--dark);">
+            <div class="admin-container" style="max-width: 1100px; margin: 0 auto; padding: 0 1rem;">
+                
+                <!-- 1. PANEL RESERVASI -->
+                <div id="panel-booking" class="admin-panel">
+                    <div class="admin-stats-grid" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom:20px;">
+                        <div class="admin-stat-card-simple">
+                            <span>Sudah Diterima (DP)</span>
+                            <h3 id="count-confirmed-dp">—</h3>
+                        </div>
+                        <div class="admin-stat-card-simple">
+                            <span>Lunas</span>
+                            <h3 id="count-settled">—</h3>
+                        </div>
+                    </div>
+
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Lap</th>
+                                    <th>Jam Sesi</th>
+                                    <th>Nama Pemesan</th>
+                                    <th>Status</th>
+                                    <th style="text-align: center;">INFORMASI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-booking-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 2. PANEL JADWAL -->
+                <div id="panel-schedule" class="admin-panel" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
+                        <div style="font-size:14px; font-weight:700; color:#fff;">Kelola Jadwal Lapangan</div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="schedule-select-court" class="bform-input" style="width: 140px; padding: 6px;" onchange="renderAdminSchedule()">
+                                <option value="1">Lapangan 1</option>
+                                <option value="2">Lapangan 2</option>
+                            </select>
+                            <select id="schedule-select-date" class="bform-input" style="width: 160px; padding: 6px;" onchange="renderAdminSchedule()"></select>
+                        </div>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Jam Sesi</th>
+                                    <th>Status</th>
+                                    <th>Penyewa</th>
+                                    <th>No. HP</th>
+                                    <th>Total Tarif</th>
+                                    <th style="text-align: center;">AKSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-schedule-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. PANEL MEMBERSHIP -->
+                <div id="panel-member" class="admin-panel" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <div style="font-size:14px; font-weight:700; color:#fff;">Daftar Anggota Aktif</div>
+                        <button class="btn-admin-action-solid" onclick="openAddMemberPrompt()">+ Tambah Member</button>
+                    </div>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Nama Pengguna</th>
+                                    <th>No. WhatsApp</th>
+                                    <th style="text-align: center;">KONTROL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-member-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. PANEL LAPORAN -->
+                <div id="panel-report" class="admin-panel" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
+                        <div style="font-size:14px; font-weight:700; color:#fff;">Laporan Keuangan & Penjualan</div>
+                        <div style="display:flex; gap: 8px; align-items: center;">
+                            <select id="report-time-filter" class="bform-input" style="width: 170px; padding: 6px;" onchange="renderAdminReports()">
+                                <option value="all">Semua Periode</option>
+                                <option value="daily">Harian (Hari Ini)</option>
+                                <option value="weekly">Mingguan (Minggu Ini)</option>
+                                <option value="monthly">Bulanan (Bulan Ini)</option>
+                                <option value="yearly">Tahunan (Tahun Ini)</option>
+                                <option value="custom">Pilih Tanggal Spesifik...</option>
+                            </select>
+                            <button id="btn-report-calendar" class="btn-admin-action-solid" style="padding: 6px 10px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; height: 34px; background: #222; border: 1px solid #444;" onclick="triggerReportDatePicker()">
+                                <i class="ti ti-calendar" style="font-size: 18px; color: #fff;"></i>
+                            </button>
+                            <input type="date" id="report-custom-date-picker" style="position: absolute; opacity: 0; width: 0; height: 0; border: none; pointer-events: none; padding: 0; margin: 0;" onchange="handleCustomReportDateSelect(this)" />
+                        </div>
+                    </div>
+                    <div class="admin-stats-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-bottom:20px; align-items:center;">
+                        <div class="admin-stat-card-simple">
+                            <span>Kas Masuk Riil</span>
+                            <h3 id="report-total-revenue" style="color:#fff;">Rp 0</h3>
+                        </div>
+                        <div class="admin-stat-card-simple">
+                            <span>Sisa Piutang Lapangan</span>
+                            <h3 id="report-remaining-pip">—</h3>
+                        </div>
+                        <button class="btn-admin-action-solid" style="height:100%; border-radius:6px; font-size:13px;" onclick="exportReportToExcel()">
+                            <i class="ti ti-download"></i> Ekspor ke Excel (.csv)
+                        </button>
+                    </div>
+
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Keterangan Lapangan</th>
+                                    <th>Penyewa</th>
+                                    <th>Total Tarif</th>
+                                    <th>Masuk Kas</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-report-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </div>
+
+    <!-- ── POPUP ACTION ADMIN MODAL ── -->
+    <div class="modal-backdrop" id="admin-action-modal" onclick="closeAdminActionModalOutside(event)">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header" style="padding:12px 16px;">
+                <h2 id="adm-modal-title" style="font-family:'Barlow'; font-size:16px; font-weight:700; color:#fff;">Konfirmasi</h2>
+                <button class="btn-close" onclick="closeAdminActionModal()"><i class="ti ti-x"></i></button>
+            </div>
+            <div class="modal-body" id="adm-modal-body" style="padding:16px;"></div>
+        </div>
+    </div>
+
+    <!-- Load scripts in order -->
+    <script src="js/base.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

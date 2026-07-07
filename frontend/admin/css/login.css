@@ -1,0 +1,47 @@
+/* ── ADMIN LOGIN SCREEN MODAL STYLING ── */
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000000;
+    padding: 20px;
+}
+
+.login-wrapper .modal {
+    max-width: 450px;
+    background: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.8);
+}
+
+.login-wrapper .bform-title {
+    color: var(--red-bright) !important;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+}
+
+.login-wrapper .btn-confirm {
+    background: #990000 !important;
+    color: #ffffff !important;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(153, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.login-wrapper .btn-confirm:hover {
+    background: #cc0000 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(204, 0, 0, 0.3);
+}
