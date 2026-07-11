@@ -20,12 +20,13 @@
       "dest": "backend/server.js"
     },
     {
-      "src": "/admin/(.*)",
-      "dest": "frontend/admin/$1"
+      "src": "/admin",
+      "status": 308,
+      "headers": { "Location": "/admin/" }
     },
     {
-      "src": "/admin",
-      "dest": "frontend/admin/index.html"
+      "src": "/admin/(.*)",
+      "dest": "frontend/admin/$1"
     },
     {
       "src": "/",
