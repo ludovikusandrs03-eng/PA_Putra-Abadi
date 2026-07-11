@@ -343,9 +343,10 @@ function processToPayment() {
     const phoneInp = document.getElementById('inp-phone').value.trim();
     if(!nameInp || !phoneInp) { alert('Isi data diri!'); return; }
     tempName = nameInp; tempPhone = phoneInp;
-    const finalPrice = isUserActiveMember(loggedInUser) ? 80000 : 100000;
+    const basePrice = 100000;
+    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
     document.getElementById('sum-court-name').textContent = `Lapangan 0${activeCourt}`;
-    document.getElementById('sum-price-base').textContent = `Rp ${finalPrice.toLocaleString()}`;
+    document.getElementById('sum-price-base').textContent = `Rp ${basePrice.toLocaleString()}`;
     document.getElementById('sum-total').textContent = `Rp ${(finalPrice - 50000).toLocaleString()}`;
     const daysName = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
     document.getElementById('sum-time').textContent = `${daysName[dateList[activeDay].getDay()]} · ${dateList[activeDay].getDate()}/${dateList[activeDay].getMonth()+1} · ${pickedSlot}`;
@@ -389,7 +390,7 @@ function sendWhatsappBookingNotification(phone, name, court, date, slot, price) 
 }
 
 function sendWhatsappMemberNotification(phone, name, expiryDate) {
-    const msg = `Halo ${name},\n\nSelamat! Pendaftaran member resmi Anda di *Putra Abadi Sport Center* telah berhasil diaktifkan.\n\n*Rincian Membership*:\n- Status: Member Resmi Aktif\n- Potongan Booking: Rp 20.000 / jam\n- Berlaku s.d.: ${expiryDate}\n\nTerima kasih atas kepercayaan Anda berlatih bersama kami! 👑`;
+    const msg = `Halo ${name},\n\nSelamat! Pendaftaran member resmi Anda di *Putra Abadi Sport Center* telah berhasil diaktifkan.\n\n*Rincian Membership*:\n- Status: Member Resmi Aktif\n- Potongan Booking: Diskon 10% / jam\n- Berlaku s.d.: ${expiryDate}\n\nTerima kasih atas kepercayaan Anda berlatih bersama kami! 👑`;
     
     fetch(`${API_URL}/send-whatsapp`, {
         method: 'POST',
@@ -454,7 +455,7 @@ function payWithMidtrans() {
         payBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Memproses...';
     }
 
-    const finalPrice = isUserActiveMember(loggedInUser) ? 80000 : 100000;
+    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
     const k = dk(dateList[activeDay]);
 
     const bookingDetails = {
