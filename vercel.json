@@ -20,6 +20,10 @@
       "dest": "frontend/admin/index.html"
     },
     {
+      "src": "/",
+      "dest": "frontend/utama/index.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "frontend/utama/$1"
     }
