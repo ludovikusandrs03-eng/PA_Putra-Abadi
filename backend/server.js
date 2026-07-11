@@ -24,6 +24,10 @@ app.use('/', express.static(path.join(__dirname, '../frontend/utama')));
 app.use('/admin', express.static(path.join(__dirname, '../frontend/admin')));
 
 // Start Express Server
-app.listen(PORT, () => {
-  console.log(`Putra Abadi Backend Server running at http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Putra Abadi Backend Server running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
