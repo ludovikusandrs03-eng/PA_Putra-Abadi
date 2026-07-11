@@ -7,7 +7,7 @@ router.get('/status', async (req, res) => {
   let dbStatus = 'disconnected';
   if (shared.dbPool) {
     try {
-      const [rows] = await shared.dbPool.query('SELECT 1');
+      await shared.dbPool.query('SELECT 1');
       dbStatus = 'connected';
     } catch (err) {
       dbStatus = `error: ${err.message}`;
@@ -18,9 +18,10 @@ router.get('/status', async (req, res) => {
     status: 'online',
     integrations: {
       tidb: dbStatus,
-      cloudinary: shared.cloudinary ? 'configured' : 'mocked',
+      cloudinary: process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name' ? 'configured' : 'mocked',
       resend: shared.resend ? 'configured' : 'mocked',
-      fonnte: process.env.FONNTE_TOKEN ? 'configured' : 'mocked'
+      fonnte: process.env.FONNTE_TOKEN ? 'configured' : 'mocked',
+      midtrans: shared.isMidtransConfigured ? 'configured' : 'mocked'
     }
   });
 });
@@ -33,7 +34,7 @@ router.post('/upload-receipt', async (req, res) => {
   }
 
   try {
-    if (process.env.CLOUDINARY_CLOUD_NAME) {
+    if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name') {
       const uploadResponse = await shared.cloudinary.uploader.upload(imageBase64, {
         folder: 'putra_abadi_receipts'
       });
@@ -72,17 +73,14 @@ router.post('/send-email', async (req, res) => {
         html: htmlContent
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
-
+      if (error) throw new Error(error.message);
       return res.json({ success: true, id: data.id });
     } else {
-      console.log(`Mocked Email Dispatch:\nTo: ${to}\nSubject: ${subject}\nHTML: ${htmlContent}`);
+      console.log(`Mocked Email:\nTo: ${to}\nSubject: ${subject}`);
       return res.json({ success: true, mock: true });
     }
   } catch (err) {
-    console.error('Email Dispatch Error:', err);
+    console.error('Email Error:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -97,7 +95,7 @@ router.post('/send-whatsapp', async (req, res) => {
   res.json(result);
 });
 
-// Config endpoint
+// Config endpoint (Midtrans client key)
 router.get('/config', (req, res) => {
   res.json({
     midtransClientKey: process.env.MIDTRANS_CLIENT_KEY || 'MOCK_CLIENT_KEY',
@@ -105,108 +103,121 @@ router.get('/config', (req, res) => {
   });
 });
 
-// GET Bookings from local persistence
-router.get('/bookings', (req, res) => {
-  res.json(shared.bookings);
+// ── GET Bookings dari TiDB (format nested: courtId > dateKey > slotKey) ──
+router.get('/bookings', async (req, res) => {
+  try {
+    const data = await shared.getBookingsFromDb();
+    res.json(data);
+  } catch (err) {
+    console.error('GET /bookings error:', err.message);
+    res.json(shared.bookings); // fallback ke cache
+  }
 });
 
-// GET Members from local persistence
-router.get('/members', (req, res) => {
-  res.json(shared.members);
+// ── GET Members dari TiDB (format: { username: memberData }) ──
+router.get('/members', async (req, res) => {
+  try {
+    const data = await shared.getMembersFromDb();
+    res.json(data);
+  } catch (err) {
+    console.error('GET /members error:', err.message);
+    res.json(shared.members); // fallback ke cache
+  }
 });
 
-// Initiate a Midtrans Snap transaction
+// ── GET Guests dari TiDB ──
+router.get('/guests', async (req, res) => {
+  try {
+    const guests = await shared.getGuestsFromDatabase();
+    res.json(guests);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Initiate Midtrans Snap transaction ──
 router.post('/midtrans/create-transaction', async (req, res) => {
-  const { type, amount, name, phone, bookingDetails } = req.body;
+  const { type, amount, name, phone, bookingDetails, bookerType } = req.body;
   if (!type || !amount || !name || !phone) {
     return res.status(400).json({ error: 'type, amount, name, and phone are required' });
   }
 
   const orderId = `${type === 'booking' ? 'BOOK' : 'MEMB'}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`.toUpperCase();
 
+  // Jika tamu (tanpa akun), simpan ke tabel guests dan dapatkan guest_id
+  let guestId = null;
+  const resolvedBookerType = bookerType || 'guest';
+  if (resolvedBookerType === 'guest' && type === 'booking') {
+    guestId = await shared.upsertGuest(name, phone);
+  }
+
+  // ── Mock mode (Midtrans tidak dikonfigurasi) ──
   if (!shared.isMidtransConfigured) {
-    console.log(`[Midtrans Mock] Creating transaction ${orderId} for ${name} amount Rp ${amount}`);
-    
+    console.log(`[Midtrans Mock] ${orderId} for ${name} (${resolvedBookerType}) Rp ${amount}`);
+
     if (type === 'booking' && bookingDetails) {
       const { courtId, dateKey, slotKey, total } = bookingDetails;
-      if (!shared.bookings[courtId]) shared.bookings[courtId] = {};
-      if (!shared.bookings[courtId][dateKey]) shared.bookings[courtId][dateKey] = {};
-      shared.bookings[courtId][dateKey][slotKey] = {
-        name,
-        phone,
+      const bookingObj = {
+        name, phone,
+        bookerType: resolvedBookerType,
+        guestId,
         status: 'waiting_dp',
         paid: 0,
         total,
         orderId
       };
-      shared.saveBookingsToFile();
+      // Simpan langsung ke TiDB
+      await shared.saveBookingToDb(courtId, dateKey, slotKey, bookingObj);
     } else if (type === 'membership') {
       shared.pendingMemberships[orderId] = { username: name, phone };
     }
 
-    return res.json({
-      token: `mock-snap-token-${orderId}`,
-      orderId,
-      mock: true
-    });
+    return res.json({ token: `mock-snap-token-${orderId}`, orderId, mock: true });
   }
 
+  // ── Real Midtrans ──
   try {
     const parameter = {
-      transaction_details: {
-        order_id: orderId,
-        gross_amount: amount
-      },
-      credit_card: {
-        secure: true
-      },
-      customer_details: {
-        first_name: name,
-        phone: phone
-      },
-      expiry: {
-        duration: 3,
-        unit: 'minutes'
-      }
+      transaction_details: { order_id: orderId, gross_amount: amount },
+      credit_card: { secure: true },
+      customer_details: { first_name: name, phone },
+      expiry: { duration: 3, unit: 'minutes' }
     };
 
     const transaction = await shared.snap.createTransaction(parameter);
-    
+
     if (type === 'booking' && bookingDetails) {
       const { courtId, dateKey, slotKey, total } = bookingDetails;
-      if (!shared.bookings[courtId]) shared.bookings[courtId] = {};
-      if (!shared.bookings[courtId][dateKey]) shared.bookings[courtId][dateKey] = {};
-      shared.bookings[courtId][dateKey][slotKey] = {
-        name,
-        phone,
+      const bookingObj = {
+        name, phone,
+        bookerType: resolvedBookerType,
+        guestId,
         status: 'waiting_dp',
         paid: 0,
         total,
         orderId
       };
-      shared.saveBookingsToFile();
+      await shared.saveBookingToDb(courtId, dateKey, slotKey, bookingObj);
     } else if (type === 'membership') {
       shared.pendingMemberships[orderId] = { username: name, phone };
     }
 
-    res.json({
-      token: transaction.token,
-      orderId
-    });
+    res.json({ token: transaction.token, orderId });
   } catch (err) {
-    console.error('Error creating Midtrans transaction:', err);
+    console.error('Midtrans create-transaction error:', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET endpoint to manually verify transaction status from the client side (localhost fallback)
+// ── Manual check & confirm payment status ──
 router.get('/midtrans/check-status', async (req, res) => {
   const { order_id } = req.query;
   if (!order_id) {
     return res.status(400).json({ error: 'order_id is required' });
   }
 
-  if (!shared.isMidtransConfigured || order_id.startsWith('mock') || order_id.includes('MOCK')) {
+  // Mock / simulasi
+  if (!shared.isMidtransConfigured || order_id.includes('mock') || order_id.includes('MOCK')) {
     const result = await shared.confirmPayment(order_id, 'qris', order_id.startsWith('BOOK') ? 50000 : 20000);
     return res.json(result);
   }
@@ -216,18 +227,17 @@ router.get('/midtrans/check-status', async (req, res) => {
     const transactionStatus = statusResponse.transaction_status;
     const fraudStatus = statusResponse.fraud_status;
 
-    console.log(`Manual status check for ${order_id}: ${transactionStatus}`);
+    console.log(`Check status ${order_id}: ${transactionStatus}`);
 
     if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
       if (transactionStatus === 'capture' && fraudStatus === 'challenge') {
         return res.json({ success: false, status: 'challenge', error: 'Payment is challenged' });
-      } else {
-        const grossAmount = parseInt(statusResponse.gross_amount);
-        const confirmResult = await shared.confirmPayment(order_id, statusResponse.payment_type, grossAmount);
-        return res.json(confirmResult);
       }
+      const grossAmount = parseInt(statusResponse.gross_amount);
+      const confirmResult = await shared.confirmPayment(order_id, statusResponse.payment_type, grossAmount);
+      return res.json(confirmResult);
     } else {
-      return res.json({ success: false, status: transactionStatus, error: `Transaction status is ${transactionStatus}` });
+      return res.json({ success: false, status: transactionStatus, error: `Transaction status: ${transactionStatus}` });
     }
   } catch (err) {
     console.error('Check status error:', err);
@@ -235,7 +245,7 @@ router.get('/midtrans/check-status', async (req, res) => {
   }
 });
 
-// POST endpoint for Midtrans Webhook Notification callback
+// ── Midtrans Webhook ──
 router.post('/midtrans/webhook', async (req, res) => {
   const notificationJson = req.body;
   if (!shared.isMidtransConfigured) {
@@ -248,36 +258,25 @@ router.post('/midtrans/webhook', async (req, res) => {
     const transactionStatus = statusResponse.transaction_status;
     const fraudStatus = statusResponse.fraud_status;
 
-    console.log(`Transaction notification received. Order ID: ${orderId}. Status: ${transactionStatus}`);
+    console.log(`Webhook: ${orderId} → ${transactionStatus}`);
 
     if (transactionStatus === 'capture' || transactionStatus === 'settlement') {
-      if (transactionStatus === 'capture' && fraudStatus === 'challenge') {
-        console.log(`Transaction challenged: ${orderId}`);
-      } else {
+      if (!(transactionStatus === 'capture' && fraudStatus === 'challenge')) {
         const grossAmount = parseInt(statusResponse.gross_amount);
         await shared.confirmPayment(orderId, statusResponse.payment_type, grossAmount);
       }
-    } else if (transactionStatus === 'cancel' || transactionStatus === 'deny' || transactionStatus === 'expire') {
-      console.log(`Transaction failed/cancelled/expired: ${orderId}`);
+    } else if (['cancel', 'deny', 'expire'].includes(transactionStatus)) {
+      console.log(`Transaction ${transactionStatus}: ${orderId}`);
       if (orderId.startsWith('BOOK-')) {
-        for (const courtId in shared.bookings) {
-          for (const dateKey in shared.bookings[courtId]) {
-            for (const slotKey in shared.bookings[courtId][dateKey]) {
-              const b = shared.bookings[courtId][dateKey][slotKey];
-              if (b.orderId === orderId && b.status === 'waiting_dp') {
-                delete shared.bookings[courtId][dateKey][slotKey];
-                shared.saveBookingsToFile();
-                console.log(`Deleted pending booking session for order: ${orderId}`);
-              }
-            }
-          }
-        }
+        // Hapus booking waiting_dp yang gagal/expired
+        await shared.deleteBookingByOrderId(orderId);
+        console.log(`Deleted expired/cancelled booking for order: ${orderId}`);
       }
     }
-    
+
     res.json({ success: true });
   } catch (err) {
-    console.error('Webhook processing error:', err);
+    console.error('Webhook error:', err);
     res.status(500).json({ error: err.message });
   }
 });

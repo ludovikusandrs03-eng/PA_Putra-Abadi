@@ -466,6 +466,9 @@ function payWithMidtrans() {
             amount: 50000,
             name: nameInp,
             phone: phoneInp,
+            bookerType: loggedInUser
+                ? (isUserActiveMember(loggedInUser) ? 'member' : 'user')
+                : 'guest',
             bookingDetails: bookingDetails
         })
     })

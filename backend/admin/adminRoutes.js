@@ -106,6 +106,16 @@ router.post('/members', async (req, res) => {
   }
 });
 
+// GET Guests list (tamu non-member yang pernah booking)
+router.get('/guests', async (req, res) => {
+  try {
+    const guests = await shared.getGuestsFromDatabase();
+    res.json({ success: true, guests });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 router.post('/payments', async (req, res) => {
   try {
     await shared.savePaymentRecordToDatabase(req.body);
