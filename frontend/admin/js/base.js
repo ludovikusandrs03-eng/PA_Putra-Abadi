@@ -32,7 +32,11 @@ function checkAdminLoginSession() {
 
 window.addEventListener('DOMContentLoaded', () => {
     const utamaLink = document.getElementById('logo-utama-link');
-    if (utamaLink && window.location.protocol === 'file:') {
-        utamaLink.setAttribute('href', '../utama/index.html');
+    const utamaImg = document.getElementById('logo-utama-img');
+    if (window.location.protocol === 'file:') {
+        if (utamaLink) utamaLink.setAttribute('href', '../utama/index.html');
+        if (utamaImg) utamaImg.setAttribute('src', '../utama/images/pa_logo.png');
+    } else {
+        if (utamaImg) utamaImg.setAttribute('src', '/images/pa_logo.png');
     }
 });
