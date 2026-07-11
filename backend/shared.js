@@ -6,7 +6,7 @@ const { Resend } = require('resend');
 const { Snap } = require('midtrans-client');
 
 // Load environment variables from parent folder .env file
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+require('dotenv').config({ path: path.join(__dirname, '../.env'), override: true });
 
 const bookingsFilePath = path.join(__dirname, 'bookings.json');
 const membersFilePath = path.join(__dirname, 'members.json');
@@ -70,6 +70,130 @@ function saveMembersToFile() {
   fs.writeFileSync(membersFilePath, JSON.stringify(members, null, 2), 'utf8');
 }
 
+async function ensureAppTables() {
+  if (!dbPool) return;
+
+  try {
+    await dbPool.query(`
+      CREATE TABLE IF NOT EXISTS admin_credentials (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        email VARCHAR(255) DEFAULT '',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    await dbPool.query(`
+      CREATE TABLE IF NOT EXISTS members (
+        username VARCHAR(100) PRIMARY KEY,
+        phone VARCHAR(30) DEFAULT '',
+        password VARCHAR(255) NOT NULL,
+        is_member BOOLEAN DEFAULT FALSE,
+        expiry_date VARCHAR(50) DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await dbPool.query(`
+      CREATE TABLE IF NOT EXISTS bookings (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        court_id VARCHAR(20) NOT NULL,
+        date_key VARCHAR(20) NOT NULL,
+        slot_key VARCHAR(50) NOT NULL,
+        name VARCHAR(150) NOT NULL,
+        phone VARCHAR(30) DEFAULT '',
+        status VARCHAR(30) NOT NULL,
+        paid DECIMAL(10,2) DEFAULT 0,
+        total DECIMAL(10,2) DEFAULT 0,
+        order_id VARCHAR(100) DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_booking (court_id, date_key, slot_key)
+      )
+    `);
+
+    await dbPool.query(`
+      CREATE TABLE IF NOT EXISTS payments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id VARCHAR(100) NOT NULL,
+        order_type VARCHAR(30) DEFAULT 'booking',
+        amount DECIMAL(10,2) DEFAULT 0,
+        payment_type VARCHAR(50) DEFAULT 'qris',
+        status VARCHAR(30) DEFAULT 'paid',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log('TIDB tables for admin/member/booking/payment are ready.');
+  } catch (err) {
+    console.error('Failed to prepare TIDB tables:', err);
+  }
+}
+
+async function syncMembersToDatabase() {
+  if (!dbPool) return;
+
+  try {
+    for (const [username, member] of Object.entries(members)) {
+      await dbPool.query(
+        `INSERT INTO members (username, phone, password, is_member, expiry_date)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+         phone = VALUES(phone),
+         password = VALUES(password),
+         is_member = VALUES(is_member),
+         expiry_date = VALUES(expiry_date)`,
+        [username, member.phone || '', member.password || '', member.isMember ? 1 : 0, member.expiryDate || '']
+      );
+    }
+  } catch (err) {
+    console.error('Failed to sync members to TIDB:', err);
+  }
+}
+
+async function syncBookingsToDatabase() {
+  if (!dbPool) return;
+
+  try {
+    for (const courtId in bookings) {
+      for (const dateKey in bookings[courtId]) {
+        for (const slotKey in bookings[courtId][dateKey]) {
+          const booking = bookings[courtId][dateKey][slotKey];
+          if (!booking) continue;
+
+          await dbPool.query(
+            `INSERT INTO bookings (court_id, date_key, slot_key, name, phone, status, paid, total, order_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+             name = VALUES(name),
+             phone = VALUES(phone),
+             status = VALUES(status),
+             paid = VALUES(paid),
+             total = VALUES(total),
+             order_id = VALUES(order_id)`,
+            [courtId, dateKey, slotKey, booking.name || '', booking.phone || '', booking.status || 'waiting_dp', booking.paid || 0, booking.total || 0, booking.orderId || '']
+          );
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to sync bookings to TIDB:', err);
+  }
+}
+
+async function savePaymentRecordToDatabase({ orderId, amount, paymentType = 'qris', orderType = 'booking', status = 'paid' }) {
+  if (!dbPool) return;
+
+  try {
+    await dbPool.query(
+      `INSERT INTO payments (order_id, order_type, amount, payment_type, status) VALUES (?, ?, ?, ?, ?)`,
+      [orderId, orderType, amount, paymentType, status]
+    );
+  } catch (err) {
+    console.error('Failed to save payment to TIDB:', err);
+  }
+}
+
 // TiDB Database Pool
 let dbPool = null;
 if (process.env.TIDB_HOST) {
@@ -96,6 +220,7 @@ if (process.env.TIDB_HOST) {
 
   dbPool = mysql.createPool(dbConfig);
   console.log('TiDB Database Connection Pool established.');
+  ensureAppTables();
 } else {
   console.log('Warning: TIDB_HOST not found in .env, running database in mock mode.');
 }
@@ -138,6 +263,149 @@ if (isMidtransConfigured) {
 // Pending Membership
 let pendingMemberships = {};
 
+// Admin configuration
+const adminConfigPath = path.join(__dirname, 'admin-config.json');
+let adminConfig = { username: 'admin', password: 'admin123', email: '' };
+
+async function ensureAdminTable() {
+  if (!dbPool) return;
+
+  try {
+    await dbPool.query(`
+      CREATE TABLE IF NOT EXISTS admin_credentials (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) NOT NULL UNIQUE,
+        password VARCHAR(255) NOT NULL,
+        email VARCHAR(255) DEFAULT '',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Admin credentials table ready in TIDB.');
+  } catch (err) {
+    console.error('Failed to prepare admin_credentials table:', err);
+  }
+}
+
+function saveAdminConfig(config = adminConfig) {
+  adminConfig = { ...adminConfig, ...config };
+  fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfig, null, 2), 'utf8');
+  return adminConfig;
+}
+
+function loadAdminConfig() {
+  if (fs.existsSync(adminConfigPath)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(adminConfigPath, 'utf8'));
+      adminConfig = {
+        username: parsed.username || 'admin',
+        password: parsed.password || 'admin123',
+        email: parsed.email || ''
+      };
+    } catch (err) {
+      console.error('Error parsing admin-config.json:', err);
+      adminConfig = { username: 'admin', password: 'admin123', email: '' };
+    }
+  } else {
+    saveAdminConfig();
+  }
+  return adminConfig;
+}
+
+function getAdminConfig() {
+  return adminConfig;
+}
+
+async function getAdminAccount(username = adminConfig.username) {
+  if (dbPool) {
+    try {
+      const [rows] = await dbPool.query('SELECT * FROM admin_credentials WHERE username = ? LIMIT 1', [username]);
+      if (rows && rows[0]) {
+        return {
+          username: rows[0].username,
+          password: rows[0].password,
+          email: rows[0].email || ''
+        };
+      }
+    } catch (err) {
+      console.error('Failed to query admin credentials from TIDB:', err);
+    }
+  }
+
+  return getAdminConfig();
+}
+
+async function saveAdminAccount(nextConfig = {}) {
+  if (dbPool) {
+    try {
+      const username = nextConfig.username || adminConfig.username;
+      const password = nextConfig.password || adminConfig.password;
+      const email = nextConfig.email || adminConfig.email || '';
+
+      const [existingRows] = await dbPool.query('SELECT id FROM admin_credentials WHERE username = ? LIMIT 1', [username]);
+      if (existingRows && existingRows[0]) {
+        await dbPool.query('UPDATE admin_credentials SET password = ?, email = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?', [password, email, username]);
+      } else {
+        await dbPool.query('INSERT INTO admin_credentials (username, password, email) VALUES (?, ?, ?)', [username, password, email]);
+      }
+
+      return { username, password, email };
+    } catch (err) {
+      console.error('Failed to save admin credentials to TIDB:', err);
+    }
+  }
+
+  return updateAdminConfig(nextConfig);
+}
+
+function updateAdminConfig(nextConfig = {}) {
+  return saveAdminConfig(nextConfig);
+}
+
+loadAdminConfig();
+ensureAdminTable();
+
+async function initializeAdminAccount() {
+  const current = await getAdminAccount(adminConfig.username);
+  if (!current || !current.username) {
+    await saveAdminAccount(adminConfig);
+  }
+}
+
+initializeAdminAccount();
+
+async function sendAdminPasswordResetEmail(targetEmail, username, password) {
+  if (!targetEmail) {
+    return { success: false, error: 'Email admin belum diisi.' };
+  }
+
+  if (!resend) {
+    console.log(`\n--- [Mock Admin Email] ---\nTo: ${targetEmail}\nSubject: Reset Password Admin\nUsername: ${username}\nPassword: ${password}\n--------------------------\n`);
+    return { success: true, mock: true };
+  }
+
+  try {
+    const response = await resend.emails.send({
+      from: `Putra Abadi Sport Center <${process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'}>`,
+      to: [targetEmail],
+      subject: 'Reset Password Admin - Putra Abadi Sport Center',
+      html: `
+        <p>Halo Admin,</p>
+        <p>Berikut informasi akun admin Anda:</p>
+        <ul>
+          <li><strong>Username:</strong> ${username}</li>
+          <li><strong>Password:</strong> ${password}</li>
+        </ul>
+        <p>Silakan gunakan kredensial tersebut untuk login kembali ke halaman admin.</p>
+      `
+    });
+    console.log('Admin password reset email sent:', response);
+    return { success: true, data: response };
+  } catch (err) {
+    console.error('Failed to send admin password reset email:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 // WhatsApp notification helper
 async function sendWhatsappNotification(target, message) {
   if (!process.env.FONNTE_TOKEN) {
@@ -179,6 +447,8 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
               b.status = 'confirmed_dp';
               b.paid = actualAmountPaid || 50000;
               saveBookingsToFile();
+              await syncBookingsToDatabase();
+              await savePaymentRecordToDatabase({ orderId, amount: actualAmountPaid || 50000, paymentType, orderType: 'booking', status: 'paid' });
               console.log(`[Success] Booking for ${b.name} on ${dateKey} ${slotKey} confirmed via Midtrans.`);
               
               const waMsg = `Halo ${b.name},\n\nBooking Lapangan Basket di *Putra Abadi Sport Center* telah berhasil dikonfirmasi!\n\n*Rincian Booking*:\n- Lapangan: Lapangan 0${courtId}\n- Tanggal: ${dateKey}\n- Jam Sesi: ${slotKey}\n- Total Tarif: Rp ${b.total.toLocaleString('id-ID')}\n- Status: DP Diterima (Rp ${b.paid.toLocaleString('id-ID')})\n\nSilakan datang tepat waktu dan selesaikan pelunasan di lapangan. Terima kasih! 🏀`;
@@ -216,6 +486,7 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
       };
       
       saveMembersToFile();
+      await syncMembersToDatabase();
       delete pendingMemberships[orderId];
       
       const exp = new Date(newExpiry);
@@ -243,6 +514,15 @@ module.exports = {
   pendingMemberships,
   saveBookingsToFile,
   saveMembersToFile,
+  ensureAppTables,
+  syncMembersToDatabase,
+  syncBookingsToDatabase,
+  savePaymentRecordToDatabase,
+  getAdminConfig,
+  getAdminAccount,
+  saveAdminAccount,
+  updateAdminConfig,
+  sendAdminPasswordResetEmail,
   sendWhatsappNotification,
   confirmPayment
 };

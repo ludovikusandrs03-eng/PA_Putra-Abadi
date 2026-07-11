@@ -1,6 +1,33 @@
 // ── API HANDLERS TO BACKEND ──
 const API_URL = 'http://localhost:5000/api';
 
+async function loginAdmin(username, password, email) {
+    const response = await fetch(`${API_URL}/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, email })
+    });
+    return response.json();
+}
+
+async function requestAdminPasswordReset(username, email) {
+    const response = await fetch(`${API_URL}/admin/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email })
+    });
+    return response.json();
+}
+
+async function changeAdminPassword(username, currentPassword, newPassword, confirmPassword) {
+    const response = await fetch(`${API_URL}/admin/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, currentPassword, newPassword, confirmPassword })
+    });
+    return response.json();
+}
+
 function syncBookingsToBackend() {
     fetch(`${API_URL}/bookings`, {
         method: 'POST',

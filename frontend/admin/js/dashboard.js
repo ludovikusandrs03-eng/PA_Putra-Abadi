@@ -8,22 +8,65 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-function handleLoginProcess() {
+async function handleLoginProcess() {
     const u = document.getElementById('admin-log-username').value.trim();
     const p = document.getElementById('admin-log-password').value;
-    
-    if (u === "admin" && p === "admin123") {
-        sessionStorage.setItem('adminActive', 'true');
-        checkAdminLoginSession();
-        initializeDashboardData();
-    } else {
-        alert('Kredensial Admin salah!');
+    const e = document.getElementById('admin-log-email').value.trim();
+
+    if (!u || !p) {
+        alert('Username dan password admin wajib diisi.');
+        return;
+    }
+
+    try {
+        const data = await loginAdmin(u, p, e);
+        if (data.success) {
+            sessionStorage.setItem('adminActive', 'true');
+            sessionStorage.setItem('adminUsername', u);
+            if (e) {
+                sessionStorage.setItem('adminEmail', e);
+            }
+            checkAdminLoginSession();
+            initializeDashboardData();
+        } else {
+            alert(data.error || 'Kredensial Admin salah!');
+        }
+    } catch (err) {
+        console.error('Admin login failed:', err);
+        alert('Tidak bisa menghubungkan ke server admin saat ini.');
+    }
+}
+
+async function handleForgotPassword() {
+    const u = document.getElementById('admin-log-username').value.trim();
+    const e = document.getElementById('admin-log-email').value.trim();
+
+    if (!u) {
+        alert('Masukkan username admin terlebih dahulu.');
+        return;
+    }
+
+    const targetEmail = e || window.prompt('Masukkan email admin yang aktif untuk menerima password:');
+    if (!targetEmail) {
+        return;
+    }
+
+    try {
+        const data = await requestAdminPasswordReset(u, targetEmail);
+        if (data.success) {
+            alert(data.message || 'Password berhasil dikirim ke email admin.');
+        } else {
+            alert(data.error || 'Gagal mengirim password admin.');
+        }
+    } catch (err) {
+        console.error('Forgot password request failed:', err);
+        alert('Gagal mengirim permintaan reset password.');
     }
 }
 
 function handleLogoutProcess() {
     sessionStorage.removeItem('adminActive');
-    window.location.href = '../utama/index.html';
+    window.location.href = '/';
 }
 
 function openAdminLogoutModal() {
@@ -32,6 +75,7 @@ function openAdminLogoutModal() {
     document.getElementById('adm-modal-body').innerHTML = `
         <div style="text-align: center; padding: 1.5rem 0;">
             <h3 style="color: #4ade80; font-size: 16px; font-weight: 700; margin-bottom: 20px; font-family: 'Barlow', sans-serif;">✓ Anda sedang login sebagai Admin</h3>
+            <button class="btn-outline" style="border-color: var(--red); color: var(--red-bright); padding: 8px 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 1px; margin-bottom: 10px;" onclick="openChangePasswordModal()">UBAH PASSWORD</button>
             <button class="btn-outline" style="border-color: var(--red); color: var(--red-bright); padding: 8px 24px; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 1px;" onclick="executeAdminLogout()">LOG OUT</button>
         </div>
     `;
@@ -40,6 +84,54 @@ function openAdminLogoutModal() {
 function executeAdminLogout() {
     closeAdminActionModal();
     handleLogoutProcess();
+}
+
+function openChangePasswordModal() {
+    closeAdminActionModal();
+    document.getElementById('admin-action-modal').classList.add('open');
+    document.getElementById('adm-modal-title').innerHTML = '<i class="ti ti-lock"></i> Ubah Password Admin';
+    document.getElementById('adm-modal-body').innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="bform-group">
+                <label class="bform-label">Password Lama</label>
+                <input class="bform-input" id="admin-current-password" type="password" placeholder="Masukkan password lama" required />
+            </div>
+            <div class="bform-group">
+                <label class="bform-label">Password Baru</label>
+                <input class="bform-input" id="admin-new-password" type="password" placeholder="Masukkan password baru" required />
+            </div>
+            <div class="bform-group">
+                <label class="bform-label">Konfirmasi Password Baru</label>
+                <input class="bform-input" id="admin-confirm-password" type="password" placeholder="Ulangi password baru" required />
+            </div>
+            <button class="btn-confirm" onclick="submitChangePassword()">Simpan Password Baru</button>
+        </div>
+    `;
+}
+
+async function submitChangePassword() {
+    const username = sessionStorage.getItem('adminUsername') || 'admin';
+    const currentPassword = document.getElementById('admin-current-password').value;
+    const newPassword = document.getElementById('admin-new-password').value;
+    const confirmPassword = document.getElementById('admin-confirm-password').value;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        alert('Semua field wajib diisi.');
+        return;
+    }
+
+    try {
+        const data = await changeAdminPassword(username, currentPassword, newPassword, confirmPassword);
+        if (data.success) {
+            alert('Password admin berhasil diperbarui.');
+            closeAdminActionModal();
+        } else {
+            alert(data.error || 'Gagal mengubah password admin.');
+        }
+    } catch (err) {
+        console.error('Change password failed:', err);
+        alert('Gagal menghubungkan ke server admin.');
+    }
 }
 
 function initializeDashboardData() {
@@ -86,7 +178,7 @@ function renderAdminDashboard() {
     if (!tbody) return;
     tbody.innerHTML = '';
     
-    let waiting = 0, confirmed = 0, settled = 0;
+    let confirmed = 0, settled = 0;
 
     for (const courtId in bk) {
         for (const dateKey in bk[courtId]) {
@@ -94,13 +186,11 @@ function renderAdminDashboard() {
                 const order = bk[courtId][dateKey][slotKey];
                 if (!order) continue;
 
-                if (order.status === 'waiting_dp') waiting++;
-                else if (order.status === 'confirmed_dp') confirmed++;
+                if (order.status === 'waiting_dp' || order.status === 'confirmed_dp') confirmed++;
                 else if (order.status === 'settled') settled++;
 
                 let stLabel = '';
-                if(order.status === 'waiting_dp') stLabel = 'Menunggu DP';
-                else if(order.status === 'confirmed_dp') stLabel = 'Sudah DP';
+                if (order.status === 'waiting_dp' || order.status === 'confirmed_dp') stLabel = 'DP via Midtrans';
                 else stLabel = 'Lunas';
 
                 const infoButton = `<button class="btn-cek-info" onclick="openBookingDetail(${courtId}, '${dateKey}', '${slotKey}')">CEK</button>`;
@@ -118,8 +208,6 @@ function renderAdminDashboard() {
             }
         }
     }
-    const countWaitingElement = document.getElementById('count-waiting-dp');
-    if (countWaitingElement) countWaitingElement.textContent = waiting;
     document.getElementById('count-confirmed-dp').textContent = confirmed;
     document.getElementById('count-settled').textContent = settled;
 }
@@ -129,17 +217,13 @@ function openBookingDetail(courtId, dateKey, slotKey) {
     let statusText = '';
     let actionButtons = '';
 
-    if (order.status === 'waiting_dp') {
-        statusText = '<span style="color:#eab308; font-weight:bold;">Menunggu DP</span>';
-        actionButtons = `
-            <button class="btn-confirm" style="margin-bottom: 10px; background: #3b82f6;" onclick="executeConfirmDP(${courtId}, '${dateKey}', '${slotKey}')"><i class="ti ti-check"></i> Konfirmasi DP</button>
-            <button class="btn-outline" style="width: 100%; border-color: #f87171; color: #f87171;" onclick="closeAdminActionModal(); rejectBooking(${courtId}, '${dateKey}', '${slotKey}')"><i class="ti ti-trash"></i> Batalkan Booking</button>
-        `;
-    } else if (order.status === 'confirmed_dp') {
-        statusText = '<span style="color:#3b82f6; font-weight:bold;">Sudah Diterima (DP)</span>';
+    if (order.status === 'waiting_dp' || order.status === 'confirmed_dp') {
+        // DP sudah tervalidasi Midtrans — admin cukup lunasi saja
+        statusText = '<span style="color:#3b82f6; font-weight:bold;">DP via Midtrans</span>';
         actionButtons = `
             <button class="btn-confirm" style="margin-bottom: 10px;" onclick="openSettlePrompt(${courtId}, '${dateKey}', '${slotKey}')"><i class="ti ti-coin"></i> Lunasi Lapangan</button>
-            <button class="btn-outline" style="width: 100%;" onclick="updateBookingTimePrompt(${courtId}, '${dateKey}', '${slotKey}')"><i class="ti ti-edit"></i> Ubah Jam Main</button>
+            <button class="btn-outline" style="width: 100%; margin-bottom: 10px;" onclick="updateBookingTimePrompt(${courtId}, '${dateKey}', '${slotKey}')"><i class="ti ti-edit"></i> Ubah Jam Main</button>
+            <button class="btn-outline" style="width: 100%; border-color: #f87171; color: #f87171;" onclick="closeAdminActionModal(); rejectBooking(${courtId}, '${dateKey}', '${slotKey}')"><i class="ti ti-trash"></i> Batalkan Booking</button>
         `;
     } else {
         statusText = '<span style="color:#4ade80; font-weight:bold;">Lunas & Selesai</span>';
@@ -197,16 +281,7 @@ function openBookingDetail(courtId, dateKey, slotKey) {
     `;
 }
 
-function executeConfirmDP(courtId, dateKey, slotKey) {
-    if (bk[courtId] && bk[courtId][dateKey] && bk[courtId][dateKey][slotKey]) {
-        bk[courtId][dateKey][slotKey].status = 'confirmed_dp';
-        bk[courtId][dateKey][slotKey].paid = 50000;
-        syncBookingsToBackend();
-        closeAdminActionModal();
-        renderAdminDashboard();
-        alert('Status DP dikonfirmasi!');
-    }
-}
+// executeConfirmDP dihapus — DP sudah divalidasi otomatis oleh Midtrans
 
 function openSettlePrompt(courtId, dateKey, slotKey) {
     const order = bk[courtId][dateKey][slotKey];
@@ -294,16 +369,12 @@ function renderAdminSchedule() {
         
         if (booking) {
             let statusText = '';
-            if (booking.status === 'waiting_dp') statusText = 'Menunggu DP';
-            else if (booking.status === 'confirmed_dp') statusText = 'DP Diterima';
+            if (booking.status === 'waiting_dp' || booking.status === 'confirmed_dp') statusText = 'DP via Midtrans';
             else if (booking.status === 'settled') statusText = 'Lunas';
             
-            let badgeBg = 'rgba(234, 179, 8, 0.15)';
-            let badgeColor = '#facc15';
-            if (booking.status === 'confirmed_dp') {
-                badgeBg = 'rgba(59, 130, 246, 0.15)';
-                badgeColor = '#60a5fa';
-            } else if (booking.status === 'settled') {
+            let badgeBg = 'rgba(59, 130, 246, 0.15)';
+            let badgeColor = '#60a5fa';
+            if (booking.status === 'settled') {
                 badgeBg = 'rgba(34, 197, 94, 0.15)';
                 badgeColor = '#4ade80';
             }
@@ -360,7 +431,7 @@ function createScheduleBooking(courtId, dateKey, slot) {
         <div class="bform-group" style="margin-bottom: 20px;">
             <label class="bform-label" style="color: #aaa;">Status Pembayaran</label>
             <select class="bform-input" id="sched-status">
-                <option value="confirmed_dp">DP Diterima (Rp 50.000)</option>
+                <option value="confirmed_dp">DP via Midtrans (Rp 50.000)</option>
                 <option value="settled">Lunas</option>
             </select>
         </div>
@@ -391,7 +462,7 @@ function editScheduleBooking(courtId, dateKey, slot) {
         <div class="bform-group" style="margin-bottom: 20px;">
             <label class="bform-label" style="color: #aaa;">Status Pembayaran</label>
             <select class="bform-input" id="sched-status">
-                <option value="confirmed_dp" ${booking.status === 'confirmed_dp' ? 'selected' : ''}>DP Diterima (Rp 50.000)</option>
+                <option value="confirmed_dp" ${(booking.status === 'waiting_dp' || booking.status === 'confirmed_dp') ? 'selected' : ''}>DP via Midtrans (Rp 50.000)</option>
                 <option value="settled" ${booking.status === 'settled' ? 'selected' : ''}>Lunas</option>
             </select>
         </div>

@@ -1,143 +1,21 @@
 {
   "1": {
-    "2026-07-01": {
+    "2026-07-09": {
       "19:00 - 20:00": {
-        "name": "Budi",
-        "phone": "081222",
+        "name": "Demo",
+        "phone": "081111",
         "status": "confirmed_dp",
         "paid": 50000,
-        "total": 100000
-      },
-      "10:00 - 11:00": {
-        "name": "AngeloAngelo",
-        "phone": "0812345678908123456789",
-        "status": "waiting_dp",
-        "paid": 0,
-        "total": 80000,
-        "orderId": "BOOK-1782918905134-3WM5O"
+        "total": 100000,
+        "orderId": "BOOK-TEST"
       },
       "11:00 - 12:00": {
-        "name": "Angelo",
-        "phone": "08123456789",
-        "status": "waiting_dp",
-        "paid": 0,
-        "total": 80000,
-        "orderId": "BOOK-1782919139141-VABZT"
-      },
-      "12:00 - 13:00": {
-        "name": "Angelo",
-        "phone": "08123456789",
-        "status": "waiting_dp",
-        "paid": 0,
-        "total": 80000,
-        "orderId": "BOOK-1782919264669-PUXTV"
-      },
-      "13:00 - 14:00": {
-        "name": "Angelo",
-        "phone": "08123456789",
-        "status": "waiting_dp",
-        "paid": 0,
-        "total": 80000,
-        "orderId": "BOOK-1782919769154-RC5LA"
-      },
-      "14:00 - 15:00": {
-        "name": "Angelo",
-        "phone": "08123456789",
-        "status": "waiting_dp",
-        "paid": 0,
-        "total": 80000,
-        "orderId": "BOOK-1782920152286-CXHU9"
-      }
-    },
-    "2026-07-02": {
-      "15:00 - 16:00": {
-        "name": "Angelo",
-        "phone": "08123456789",
-        "status": "waiting_dp",
-        "paid": 0,
-        "total": 80000,
-        "orderId": "BOOK-1782921141356-JW6TW"
-      }
-    },
-    "2026-07-06": {
-      "11:00 - 12:00": {
-        "name": "yaya",
+        "name": "nuel",
         "phone": "082236980074",
-        "status": "confirmed_dp",
-        "paid": 50000,
-        "total": 100000,
-        "orderId": "BOOK-1783334111551-CMTR1"
-      },
-      "12:00 - 13:00": {
-        "name": "yaya",
-        "phone": "082236980074",
-        "status": "confirmed_dp",
-        "paid": 50000,
-        "total": 100000,
-        "orderId": "BOOK-1783334155296-ZO3CT"
-      },
-      "10:00 - 11:00": {
-        "name": "nuel",
-        "phone": "081233122575",
         "status": "waiting_dp",
         "paid": 0,
         "total": 100000,
-        "orderId": "BOOK-1783334549023-CLBM3"
-      },
-      "13:00 - 14:00": {
-        "name": "daniel",
-        "phone": "081233122575",
-        "status": "confirmed_dp",
-        "paid": 50000,
-        "total": 100000,
-        "orderId": "BOOK-1783334619053-EXCDM"
-      },
-      "14:00 - 15:00": {
-        "name": "nuel",
-        "phone": "085326601005",
-        "status": "confirmed_dp",
-        "paid": 50000,
-        "total": 100000,
-        "orderId": "BOOK-1783335007267-GTXYZ"
-      }
-    },
-    "2026-07-07": {
-      "11:00 - 12:00": {
-        "name": "daniel",
-        "phone": "081233122575",
-        "status": "confirmed_dp",
-        "paid": 50000,
-        "total": 100000,
-        "orderId": "BOOK-1783403469111-WL54F"
-      },
-      "10:00 - 11:00": {
-        "name": "daniel",
-        "phone": "081233122575",
-        "status": "confirmed_dp",
-        "paid": 50000,
-        "total": 80000,
-        "orderId": "BOOK-1783403585948-5NGYE"
-      }
-    }
-  },
-  "2": {
-    "2026-07-01": {
-      "18:00 - 19:00": {
-        "name": "Angelo",
-        "phone": "08123456789",
-        "status": "settled",
-        "paid": 80000,
-        "total": 80000
-      }
-    },
-    "2026-07-06": {
-      "11:00 - 12:00": {
-        "name": "nuel",
-        "phone": "085326601005",
-        "status": "confirmed_dp",
-        "paid": 50000,
-        "total": 100000,
-        "orderId": "BOOK-1783335049929-NEVUT"
+        "orderId": "BOOK-1783565212233-1AMBX"
       }
     }
   }

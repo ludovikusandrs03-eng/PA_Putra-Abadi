@@ -18,7 +18,7 @@
         <div class="modal" style="max-width: 450px;">
             <div class="modal-header">
                 <h2 style="font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase;"><i class="ti ti-id-badge"></i> Area Membership</h2>
-                <button class="btn-close" onclick="window.location.href='../utama/index.html'"><i class="ti ti-x"></i></button>
+                <button class="btn-close" onclick="window.location.href='/'"><i class="ti ti-x"></i></button>
             </div>
             <div class="modal-body">
                 <form id="admin-login-form" onsubmit="event.preventDefault(); handleLoginProcess()">
@@ -27,11 +27,16 @@
                         <label class="bform-label">Username Admin</label>
                         <input class="bform-input" id="admin-log-username" placeholder="Masukkan username admin..." required autocomplete="username"/>
                     </div>
-                    <div class="bform-group" style="margin-bottom: 1.5rem;">
+                    <div class="bform-group" style="margin-bottom: 12px;">
                         <label class="bform-label">Password</label>
                         <input class="bform-input" type="password" id="admin-log-password" placeholder="******" required autocomplete="current-password"/>
                     </div>
+                    <div class="bform-group" style="margin-bottom: 1.5rem;">
+                        <label class="bform-label">Email Admin</label>
+                        <input class="bform-input" id="admin-log-email" placeholder="Email untuk reset password admin..." autocomplete="email"/>
+                    </div>
                     <button type="submit" class="btn-confirm">Masuk sebagai Admin</button>
+                    <button type="button" class="btn-outline" style="margin-top: 10px; width: 100%; border-color: rgba(255,255,255,0.2); color: #fff;" onclick="handleForgotPassword()">Lupa Password?</button>
                 </form>
             </div>
         </div>
@@ -65,7 +70,7 @@
                 <div id="panel-booking" class="admin-panel">
                     <div class="admin-stats-grid" style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px; margin-bottom:20px;">
                         <div class="admin-stat-card-simple">
-                            <span>Sudah Diterima (DP)</span>
+                            <span>DP via Midtrans</span>
                             <h3 id="count-confirmed-dp">—</h3>
                         </div>
                         <div class="admin-stat-card-simple">
