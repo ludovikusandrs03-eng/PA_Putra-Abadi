@@ -94,37 +94,17 @@ if (isMidtransConfigured) {
 let pendingMemberships = {};
 
 // ─────────────────────────────────────────────────────────────
-// Admin config fallback (in-memory + admin-config.json)
 // ─────────────────────────────────────────────────────────────
-const adminConfigPath = path.join(__dirname, 'admin-config.json');
+// Admin config fallback (in-memory only)
+// ─────────────────────────────────────────────────────────────
 let adminConfig = { username: 'admin', password: 'admin123', email: '' };
 
 function saveAdminConfig(config = adminConfig) {
   adminConfig = { ...adminConfig, ...config };
-  try {
-    fs.writeFileSync(adminConfigPath, JSON.stringify(adminConfig, null, 2), 'utf8');
-  } catch (err) {
-    console.warn('Could not write admin-config.json:', err.message);
-  }
   return adminConfig;
 }
 
 function loadAdminConfig() {
-  if (fs.existsSync(adminConfigPath)) {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(adminConfigPath, 'utf8'));
-      adminConfig = {
-        username: parsed.username || 'admin',
-        password: parsed.password || 'admin123',
-        email: parsed.email || ''
-      };
-    } catch (err) {
-      console.error('Error parsing admin-config.json:', err);
-      adminConfig = { username: 'admin', password: 'admin123', email: '' };
-    }
-  } else {
-    saveAdminConfig();
-  }
   return adminConfig;
 }
 
@@ -135,8 +115,6 @@ function getAdminConfig() {
 function updateAdminConfig(nextConfig = {}) {
   return saveAdminConfig(nextConfig);
 }
-
-loadAdminConfig();
 
 // ─────────────────────────────────────────────────────────────
 // DB Helper: Bookings
@@ -326,18 +304,34 @@ async function deleteBookingByOrderId(orderId) {
 async function getMembersFromDb() {
   if (!dbPool) return members; // fallback ke cache
   try {
-    const [rows] = await executeQuery(
-      `SELECT username, phone, password, is_member, expiry_date FROM members`
-    );
     const result = {};
-    for (const row of rows) {
+
+    // 1. Ambil dari tabel members (member aktif)
+    const [memberRows] = await executeQuery(
+      `SELECT username, phone, password, expiry_date FROM members`
+    );
+    for (const row of memberRows) {
       result[row.username] = {
         phone: row.phone,
         password: row.password,
-        isMember: !!row.is_member,
+        isMember: true,
         expiryDate: row.expiry_date || ''
       };
     }
+
+    // 2. Ambil dari tabel guests (non-member yang memiliki akun)
+    const [guestRows] = await executeQuery(
+      `SELECT name, phone, password FROM guests WHERE password IS NOT NULL`
+    );
+    for (const row of guestRows) {
+      result[row.name] = {
+        phone: row.phone,
+        password: row.password,
+        isMember: false,
+        expiryDate: ''
+      };
+    }
+
     members = result; // update cache
     return result;
   } catch (err) {
@@ -350,22 +344,48 @@ async function getMembersFromDb() {
 async function saveMemberToDb(username, memberData) {
   if (!dbPool) return;
   try {
-    await executeQuery(
-      `INSERT INTO members (username, phone, password, is_member, expiry_date)
-       VALUES (?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         phone       = VALUES(phone),
-         password    = VALUES(password),
-         is_member   = VALUES(is_member),
-         expiry_date = VALUES(expiry_date)`,
-      [
-        username,
-        memberData.phone || '',
-        memberData.password || '',
-        memberData.isMember ? 1 : 0,
-        memberData.expiryDate || ''
-      ]
-    );
+    if (memberData.isMember) {
+      // 1. Simpan/update ke tabel members
+      await executeQuery(
+        `INSERT INTO members (username, phone, password, is_member, expiry_date)
+         VALUES (?, ?, ?, 1, ?)
+         ON DUPLICATE KEY UPDATE
+           phone       = VALUES(phone),
+           password    = VALUES(password),
+           is_member   = 1,
+           expiry_date = VALUES(expiry_date)`,
+        [
+          username,
+          memberData.phone || '',
+          memberData.password || '',
+          memberData.expiryDate || ''
+        ]
+      );
+      // 2. Jika sebelumnya ada di tabel guests, pindahkan booking-nya ke member lalu hapus data guest tersebut
+      const [gRows] = await executeQuery(`SELECT id FROM guests WHERE name = ? LIMIT 1`, [username]);
+      if (gRows && gRows[0]) {
+        const gId = gRows[0].id;
+        await executeQuery(`UPDATE bookings SET guest_id = NULL, booker_type = 'member' WHERE guest_id = ?`, [gId]);
+        await executeQuery(`DELETE FROM guests WHERE id = ?`, [gId]);
+      }
+    } else {
+      // 1. Simpan/update ke tabel guests
+      await executeQuery(
+        `INSERT INTO guests (name, phone, password, user_type)
+         VALUES (?, ?, ?, 'user')
+         ON DUPLICATE KEY UPDATE
+           phone     = VALUES(phone),
+           password  = VALUES(password),
+           user_type = 'user'`,
+        [
+          username,
+          memberData.phone || '',
+          memberData.password || ''
+        ]
+      );
+      // 2. Hapus dari tabel members jika sebelumnya ada di sana
+      await executeQuery(`DELETE FROM members WHERE username = ?`, [username]);
+    }
     // update cache
     members[username] = memberData;
   } catch (err) {
@@ -378,10 +398,48 @@ async function deleteMemberFromDb(username) {
   if (!dbPool) return;
   try {
     await executeQuery(`DELETE FROM members WHERE username = ?`, [username]);
+    await executeQuery(`DELETE FROM guests WHERE name = ? AND password IS NOT NULL`, [username]);
     delete members[username];
   } catch (err) {
     console.error('Failed to delete member from TiDB:', err.message);
   }
+}
+
+// Sinkronisasi data ke TiDB
+async function syncMembersToDatabase() {
+  if (!dbPool) return;
+  try {
+    for (const [username, memberData] of Object.entries(members)) {
+      await saveMemberToDb(username, memberData);
+    }
+    console.log('All members synced to TiDB.');
+  } catch (err) {
+    console.error('Failed to sync members to database:', err.message);
+  }
+}
+
+async function syncBookingsToDatabase() {
+  if (!dbPool) return;
+  try {
+    for (const [courtId, dates] of Object.entries(bookings)) {
+      for (const [dateKey, slots] of Object.entries(dates)) {
+        for (const [slotKey, bookingData] of Object.entries(slots)) {
+          await saveBookingToDb(courtId, dateKey, slotKey, bookingData);
+        }
+      }
+    }
+    console.log('All bookings synced to TiDB.');
+  } catch (err) {
+    console.error('Failed to sync bookings to database:', err.message);
+  }
+}
+
+function saveBookingsToFile() {
+  // Mode murni database: no-op
+}
+
+function saveMembersToFile() {
+  // Mode murni database: no-op
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -527,10 +585,15 @@ async function ensureAppTables() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(150) NOT NULL,
         phone VARCHAR(30) NOT NULL,
+        password VARCHAR(255) DEFAULT NULL,
         user_type VARCHAR(20) NOT NULL DEFAULT 'guest',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uk_guest (name, phone)
       )
+    `);
+
+    await dbPool.query(`
+      ALTER TABLE guests ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT NULL
     `);
 
     await dbPool.query(`
@@ -834,6 +897,10 @@ module.exports = {
   getMembersFromDb,
   saveMemberToDb,
   deleteMemberFromDb,
+  syncMembersToDatabase,
+  syncBookingsToDatabase,
+  saveBookingsToFile,
+  saveMembersToFile,
 
   // Guest DB helpers
   upsertGuest,

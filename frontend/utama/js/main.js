@@ -56,6 +56,12 @@ let pendingRegPhone = "";
 let pendingRegPassword = "";
 
 window.addEventListener('DOMContentLoaded', () => { 
+    // Adjust admin link if opened via file protocol
+    const adminLink = document.getElementById('logo-admin-link');
+    if (adminLink && window.location.protocol === 'file:') {
+        adminLink.setAttribute('href', '../admin/index.html');
+    }
+
     // Muat data dari backend saat inisialisasi
     Promise.all([
         fetch(`${API_URL}/members`).then(res => res.json()),

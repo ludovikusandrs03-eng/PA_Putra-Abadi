@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS guests (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   name       VARCHAR(150) NOT NULL,
   phone      VARCHAR(30)  NOT NULL,
+  password   VARCHAR(255) DEFAULT NULL,
   user_type  VARCHAR(20)  NOT NULL DEFAULT 'guest',
   created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   -- Satu tamu diidentifikasi oleh kombinasi nama + nomor HP

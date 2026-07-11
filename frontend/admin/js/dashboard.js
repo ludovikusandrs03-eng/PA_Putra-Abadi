@@ -66,7 +66,7 @@ async function handleForgotPassword() {
 
 function handleLogoutProcess() {
     sessionStorage.removeItem('adminActive');
-    window.location.href = '/';
+    window.location.href = window.location.protocol === 'file:' ? '../utama/index.html' : '/';
 }
 
 function openAdminLogoutModal() {

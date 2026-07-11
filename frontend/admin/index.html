@@ -18,7 +18,7 @@
         <div class="modal" style="max-width: 450px;">
             <div class="modal-header">
                 <h2 style="font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase;"><i class="ti ti-id-badge"></i> Area Membership</h2>
-                <button class="btn-close" onclick="window.location.href='/'"><i class="ti ti-x"></i></button>
+                <button class="btn-close" onclick="window.location.href = window.location.protocol === 'file:' ? '../utama/index.html' : '/'"><i class="ti ti-x"></i></button>
             </div>
             <div class="modal-body">
                 <form id="admin-login-form" onsubmit="event.preventDefault(); handleLoginProcess()">
@@ -45,7 +45,7 @@
     <!-- ── ADMIN DASHBOARD SCREEN ── -->
     <div id="admin-dashboard-screen" style="display: none;">
         <nav>
-            <a class="nav-brand" href="../utama/index.html">
+            <a class="nav-brand" id="logo-utama-link" href="/">
                 <img src="../utama/images/pa_logo.png" alt="Logo Putra Abadi" class="nav-logo-img"/>
                 <div class="nav-brand-text">
                     <span>Putra Abadi</span>

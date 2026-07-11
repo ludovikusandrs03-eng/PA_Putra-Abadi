@@ -29,3 +29,10 @@ function checkAdminLoginSession() {
         return false;
     }
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+    const utamaLink = document.getElementById('logo-utama-link');
+    if (utamaLink && window.location.protocol === 'file:') {
+        utamaLink.setAttribute('href', '../utama/index.html');
+    }
+});
