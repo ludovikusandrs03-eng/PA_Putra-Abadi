@@ -8,22 +8,9 @@ let registeredMembers = {
     "Bryan": { phone: "08777776666", password: "123", isMember: true, expiryDate: oneMonthFromNow.toISOString() }
 };
 
-function findMemberCaseInsensitive(username) {
-    if (!username || !registeredMembers) return null;
-    const lower = username.trim().toLowerCase();
-    for (const key of Object.keys(registeredMembers)) {
-        if (key.toLowerCase() === lower) {
-            return { username: key, data: registeredMembers[key] };
-        }
-    }
-    return null;
-}
-
 function isUserActiveMember(u) {
-    if (!u) return false;
-    const memberObj = findMemberCaseInsensitive(u);
-    if (!memberObj) return false;
-    const memberData = memberObj.data;
+    if (!u || !registeredMembers[u]) return false;
+    const memberData = registeredMembers[u];
     if (!memberData.isMember) return false;
     if (!memberData.expiryDate) return false;
     return new Date() < new Date(memberData.expiryDate);
@@ -128,11 +115,10 @@ function loginMemberProcess() {
     const p = document.getElementById('log-password').value;
     if(!u || !p){ alert('Isi semua kolom!'); return; }
 
-    const memberObj = findMemberCaseInsensitive(u);
-    if(memberObj && memberObj.data.password === p) {
-        loggedInUser = memberObj.username;
-        document.getElementById('member-status-text').textContent = loggedInUser;
-        if (isUserActiveMember(loggedInUser)) {
+    if(registeredMembers[u] && registeredMembers[u].password === p) {
+        loggedInUser = u;
+        document.getElementById('member-status-text').textContent = u;
+        if (isUserActiveMember(u)) {
             document.getElementById('nav-member-btn').style.background = '#16a34a';
         } else {
             document.getElementById('nav-member-btn').style.background = 'var(--red)';
@@ -156,11 +142,9 @@ function logoutMember() {
 
 // PROFILE ACTIONS
 function openEditProfileForm() {
-    if (!loggedInUser) return;
-    const memberObj = findMemberCaseInsensitive(loggedInUser);
-    if (!memberObj) return;
-    const user = memberObj.data;
-    document.getElementById('edit-name').value = memberObj.username;
+    if (!loggedInUser || !registeredMembers[loggedInUser]) return;
+    const user = registeredMembers[loggedInUser];
+    document.getElementById('edit-name').value = loggedInUser;
     document.getElementById('edit-phone').value = user.phone;
     document.getElementById('edit-password').value = user.password;
     switchMemberView('edit-profile');
@@ -290,21 +274,8 @@ function openModal(courtId, preserveSlot = false) {
         document.getElementById('modal-sub').textContent = "Indoor · Lantai Vinyl Biru";
     }
     const mAlert = document.getElementById('booking-member-alert');
-    if(loggedInUser && isUserActiveMember(loggedInUser)) {
+    if(loggedInUser && registeredMembers[loggedInUser]?.isMember) {
         mAlert.style.display = 'block';
-        const freeUsed = parseInt(registeredMembers[loggedInUser].freeSessionUsed || 0);
-        const freeRemaining = Math.max(0, 2 - freeUsed);
-        if (freeRemaining > 0) {
-            mAlert.innerHTML = `💡 <strong>Jatah Free Member Aktif:</strong> Anda masih memiliki jatah bermain gratis sebanyak <strong>${freeRemaining} Sesi / Jam</strong>! Sesi booking kali ini akan bernilai <strong>Rp 0</strong>.`;
-            mAlert.style.background = 'rgba(22,163,74,0.1)';
-            mAlert.style.border = '1px solid rgba(22,163,74,0.2)';
-            mAlert.style.color = '#4ade80';
-        } else {
-            mAlert.innerHTML = `💡 <strong>Keuntungan Member:</strong> Jatah free 2 jam Anda telah habis. Anda mendapatkan potongan langsung sebesar <strong>Diskon 10% / Jam</strong> (Tarif Rp 90.000) karena Anda terdaftar sebagai member resmi!`;
-            mAlert.style.background = 'rgba(255,255,255,0.03)';
-            mAlert.style.border = '1px solid rgba(255,255,255,0.05)';
-            mAlert.style.color = '#fff';
-        }
     } else {
         mAlert.style.display = 'none';
     }
@@ -375,32 +346,10 @@ function processToPayment() {
     if(!nameInp || !phoneInp) { alert('Isi data diri!'); return; }
     tempName = nameInp; tempPhone = phoneInp;
     const basePrice = 100000;
-    const isMember = isUserActiveMember(loggedInUser);
-    const freeUsed = loggedInUser && registeredMembers[loggedInUser] ? parseInt(registeredMembers[loggedInUser].freeSessionUsed || 0) : 0;
-    const freeRemaining = isMember ? Math.max(0, 2 - freeUsed) : 0;
-    const isFreeBooking = isMember && freeRemaining > 0;
-
-    let finalPrice = isMember ? 90000 : 100000;
-    let dpPrice = 50000;
-    let totalToPay = finalPrice - dpPrice;
-
+    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
     document.getElementById('sum-court-name').textContent = `Lapangan 0${activeCourt}`;
-    
-    if (isFreeBooking) {
-        finalPrice = 0;
-        dpPrice = 0;
-        totalToPay = 0;
-        document.getElementById('sum-price-base').textContent = `Rp 0 (Menggunakan Jatah Free Member)`;
-        document.getElementById('sum-total').textContent = `Rp 0`;
-        const payBtn = document.getElementById('btn-pay-midtrans');
-        if (payBtn) payBtn.innerHTML = `<i class="ti ti-gift"></i> Gunakan Jatah Free 1 Jam`;
-    } else {
-        document.getElementById('sum-price-base').textContent = `Rp ${basePrice.toLocaleString()}`;
-        document.getElementById('sum-total').textContent = `Rp ${totalToPay.toLocaleString()}`;
-        const payBtn = document.getElementById('btn-pay-midtrans');
-        if (payBtn) payBtn.innerHTML = `<i class="ti ti-credit-card"></i> Bayar DP Sekarang`;
-    }
-
+    document.getElementById('sum-price-base').textContent = `Rp ${basePrice.toLocaleString()}`;
+    document.getElementById('sum-total').textContent = `Rp ${(finalPrice - 50000).toLocaleString()}`;
     const daysName = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
     document.getElementById('sum-time').textContent = `${daysName[dateList[activeDay].getDay()]} · ${dateList[activeDay].getDate()}/${dateList[activeDay].getMonth()+1} · ${pickedSlot}`;
     document.getElementById('payment-section').style.display = 'block';
@@ -465,7 +414,7 @@ function syncMembersToBackend() {
 }
 
 function loadBookingsFromBackend() {
-    fetch(`${API_URL}/bookings?t=${Date.now()}`)
+    fetch(`${API_URL}/bookings`)
     .then(res => res.json())
     .then(data => {
         bk = data;
@@ -476,7 +425,7 @@ function loadBookingsFromBackend() {
 }
 
 function loadMembersFromBackend() {
-    fetch(`${API_URL}/members?t=${Date.now()}`)
+    fetch(`${API_URL}/members`)
     .then(res => res.json())
     .then(data => {
         registeredMembers = data;
@@ -508,13 +457,7 @@ function payWithMidtrans() {
         payBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Memproses...';
     }
 
-    const isMember = isUserActiveMember(loggedInUser);
-    const freeUsed = loggedInUser && registeredMembers[loggedInUser] ? parseInt(registeredMembers[loggedInUser].freeSessionUsed || 0) : 0;
-    const freeRemaining = isMember ? Math.max(0, 2 - freeUsed) : 0;
-    const isFreeBooking = isMember && freeRemaining > 0;
-
-    const finalPrice = isFreeBooking ? 0 : (isMember ? 90000 : 100000);
-    const amountToPay = isFreeBooking ? 0 : 50000;
+    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
     const k = dk(dateList[activeDay]);
 
     const bookingDetails = {
@@ -529,34 +472,24 @@ function payWithMidtrans() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             type: 'booking',
-            amount: amountToPay,
+            amount: 50000,
             name: nameInp,
             phone: phoneInp,
             bookerType: loggedInUser
                 ? (isUserActiveMember(loggedInUser) ? 'member' : 'user')
                 : 'guest',
-            bookingDetails: bookingDetails,
-            isFreeSession: isFreeBooking,
-            username: loggedInUser
+            bookingDetails: bookingDetails
         })
     })
     .then(res => res.json())
     .then(data => {
         if (payBtn) {
             payBtn.disabled = false;
-            payBtn.innerHTML = isFreeBooking ? `<i class="ti ti-gift"></i> Gunakan Jatah Free 1 Jam` : '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
+            payBtn.innerHTML = '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
         }
 
         if (data.error) {
             alert('Gagal membuat transaksi: ' + data.error);
-            return;
-        }
-
-        if (data.free) {
-            alert('Booking berhasil dikonfirmasi menggunakan jatah free member Anda!');
-            closeModal();
-            loadBookingsFromBackend();
-            loadMembersFromBackend();
             return;
         }
 
@@ -646,7 +579,7 @@ function payMembershipWithMidtrans() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             type: 'membership',
-            amount: 180000,
+            amount: 20000,
             name: name,
             phone: phone
         })
@@ -666,7 +599,7 @@ function payMembershipWithMidtrans() {
         currentMidtransOrderId = data.orderId;
 
         if (data.mock) {
-            openSimulationModal(data.orderId, 180000, 'Registrasi Member Baru');
+            openSimulationModal(data.orderId, 20000, 'Registrasi Member Baru');
         } else {
             window.snap.pay(data.token, {
                 onSuccess: function(result) {

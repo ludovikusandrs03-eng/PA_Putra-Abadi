@@ -61,7 +61,7 @@ function syncMembersToBackend() {
 }
 
 function loadBookingsFromBackend() {
-    return fetch(`${API_URL}/bookings?t=${Date.now()}`)
+    return fetch(`${API_URL}/bookings`)
     .then(res => res.json())
     .then(data => {
         bk = data;
@@ -73,7 +73,7 @@ function loadBookingsFromBackend() {
 }
 
 function loadMembersFromBackend() {
-    return fetch(`${API_URL}/members?t=${Date.now()}`)
+    return fetch(`${API_URL}/members`)
     .then(res => res.json())
     .then(data => {
         registeredMembers = data;

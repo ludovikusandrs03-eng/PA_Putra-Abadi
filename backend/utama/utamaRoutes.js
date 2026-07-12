@@ -139,8 +139,8 @@ router.get('/guests', async (req, res) => {
 
 // ── Initiate Midtrans Snap transaction ──
 router.post('/midtrans/create-transaction', async (req, res) => {
-  const { type, amount, name, phone, bookingDetails, bookerType, isFreeSession, username } = req.body;
-  if (!type || amount === undefined || !name || !phone) {
+  const { type, amount, name, phone, bookingDetails, bookerType } = req.body;
+  if (!type || !amount || !name || !phone) {
     return res.status(400).json({ error: 'type, amount, name, and phone are required' });
   }
 
@@ -151,59 +151,6 @@ router.post('/midtrans/create-transaction', async (req, res) => {
   const resolvedBookerType = bookerType || 'guest';
   if (resolvedBookerType === 'guest' && type === 'booking') {
     guestId = await shared.upsertGuest(name, phone);
-  }
-
-  // ── Handle Free Session Booking ──
-  if (type === 'booking' && isFreeSession) {
-    try {
-      const membersList = await shared.getMembersFromDb();
-      const targetUser = (username || name).trim();
-
-      let member = null;
-      let matchedUsername = null;
-      for (const [uname, mData] of Object.entries(membersList)) {
-        if (uname.toLowerCase() === targetUser.toLowerCase()) {
-          member = mData;
-          matchedUsername = uname;
-          break;
-        }
-      }
-
-      if (!member || !member.isMember) {
-        return res.status(400).json({ error: 'User is not a member.' });
-      }
-
-      const freeUsed = member.freeSessionUsed || 0;
-      if (freeUsed >= 2) {
-        return res.status(400).json({ error: 'Jatah free bermain Anda sudah habis.' });
-      }
-
-      // 1. Update jatah free member di DB
-      member.freeSessionUsed = freeUsed + 1;
-      await shared.saveMemberToDb(matchedUsername, member);
-
-      // 2. Simpan booking terkonfirmasi dengan total = 0
-      const { courtId, dateKey, slotKey } = bookingDetails;
-      const bookingObj = {
-        name, phone,
-        bookerType: 'member',
-        guestId: null,
-        status: 'confirmed_dp',
-        paid: 0,
-        total: 0,
-        orderId
-      };
-      await shared.saveBookingToDb(courtId, dateKey, slotKey, bookingObj);
-
-      // 3. Kirim WhatsApp
-      const waMsg = `Halo ${name},\n\nBooking Lapangan Basket di *Putra Abadi Sport Center* telah berhasil dikonfirmasi menggunakan Jatah Free Member!\n\n*Rincian Booking*:\n- Lapangan: Lapangan 0${courtId}\n- Tanggal: ${dateKey}\n- Sesi Jam: ${slotKey}\n- Tarif: Rp 0 (Free Member)\n- Sisa Jatah Free: ${2 - member.freeSessionUsed} Jam\n\nTerima kasih! 🏀`;
-      await shared.sendWhatsappNotification(phone, waMsg);
-
-      return res.json({ success: true, free: true, orderId });
-    } catch (err) {
-      console.error('Free booking error:', err);
-      return res.status(500).json({ error: err.message });
-    }
   }
 
   // ── Mock mode (Midtrans tidak dikonfigurasi) ──

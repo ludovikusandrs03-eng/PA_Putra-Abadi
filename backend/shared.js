@@ -308,15 +308,14 @@ async function getMembersFromDb() {
 
     // 1. Ambil dari tabel members (member aktif)
     const [memberRows] = await executeQuery(
-      `SELECT username, phone, password, expiry_date, free_session_used FROM members`
+      `SELECT username, phone, password, expiry_date FROM members`
     );
     for (const row of memberRows) {
       result[row.username] = {
         phone: row.phone,
         password: row.password,
         isMember: true,
-        expiryDate: row.expiry_date || '',
-        freeSessionUsed: parseInt(row.free_session_used || '0')
+        expiryDate: row.expiry_date || ''
       };
     }
 
@@ -329,8 +328,7 @@ async function getMembersFromDb() {
         phone: row.phone,
         password: row.password,
         isMember: false,
-        expiryDate: '',
-        freeSessionUsed: 0
+        expiryDate: ''
       };
     }
 
@@ -347,25 +345,22 @@ async function saveMemberToDb(username, memberData) {
   if (!dbPool) return;
   try {
     const isMember = (memberData.isMember === true || memberData.isMember === 'true' || memberData.isMember === 1);
-    const freeSessionUsed = parseInt(memberData.freeSessionUsed || '0');
 
     if (isMember) {
       // 1. Simpan/update ke tabel members
       await executeQuery(
-        `INSERT INTO members (username, phone, password, is_member, expiry_date, free_session_used)
-         VALUES (?, ?, ?, 1, ?, ?)
+        `INSERT INTO members (username, phone, password, is_member, expiry_date)
+         VALUES (?, ?, ?, 1, ?)
          ON DUPLICATE KEY UPDATE
-           phone             = VALUES(phone),
-           password          = VALUES(password),
-           is_member         = 1,
-           expiry_date       = VALUES(expiry_date),
-           free_session_used = VALUES(free_session_used)`,
+           phone       = VALUES(phone),
+           password    = VALUES(password),
+           is_member   = 1,
+           expiry_date = VALUES(expiry_date)`,
         [
           username,
           memberData.phone || '',
           memberData.password || '',
-          memberData.expiryDate || '',
-          freeSessionUsed
+          memberData.expiryDate || ''
         ]
       );
 
@@ -581,18 +576,13 @@ async function ensureAppTables() {
 
     await dbPool.query(`
       CREATE TABLE IF NOT EXISTS members (
-        username          VARCHAR(100) PRIMARY KEY,
-        phone             VARCHAR(30)  DEFAULT '',
-        password          VARCHAR(255) NOT NULL,
-        is_member         BOOLEAN      DEFAULT FALSE,
-        expiry_date       VARCHAR(50)  DEFAULT '',
-        free_session_used INT          DEFAULT 0,
-        created_at        TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+        username VARCHAR(100) PRIMARY KEY,
+        phone VARCHAR(30) DEFAULT '',
+        password VARCHAR(255) NOT NULL,
+        is_member BOOLEAN DEFAULT FALSE,
+        expiry_date VARCHAR(50) DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `);
-
-    await dbPool.query(`
-      ALTER TABLE members ADD COLUMN IF NOT EXISTS free_session_used INT DEFAULT 0
     `);
 
     await dbPool.query(`
@@ -871,19 +861,18 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
         phone,
         password: currentMember?.password || '123',
         isMember: true,
-        expiryDate: newExpiry.toISOString(),
-        freeSessionUsed: 0
+        expiryDate: newExpiry.toISOString()
       };
 
       // Simpan langsung ke TiDB
       await saveMemberToDb(username, updatedMember);
-      await savePaymentRecordToDatabase({ orderId, amount: 180000, paymentType, orderType: 'membership', status: 'paid' });
+      await savePaymentRecordToDatabase({ orderId, amount: 20000, paymentType, orderType: 'membership', status: 'paid' });
       delete pendingMemberships[orderId];
 
       const exp = newExpiry;
       const formattedDate = `${String(exp.getDate()).padStart(2, '0')}/${String(exp.getMonth() + 1).padStart(2, '0')}/${exp.getFullYear()}`;
 
-      const waMsg = `Halo ${username},\n\nSelamat! Pendaftaran member resmi Anda di *Putra Abadi Sport Center* telah aktif via pembayaran online.\n\n*Rincian Membership*:\n- Status: Member Resmi Aktif\n- Keuntungan: Gratis 2 Jam Main Pertama & Diskon 10% / jam berikutnya\n- Berlaku s.d.: ${formattedDate}\n\nTerima kasih atas pembayaran Anda! 👑`;
+      const waMsg = `Halo ${username},\n\nSelamat! Pendaftaran member resmi Anda di *Putra Abadi Sport Center* telah aktif via pembayaran online.\n\n*Rincian Membership*:\n- Status: Member Resmi Aktif\n- Potongan Booking: Diskon 10% / jam\n- Berlaku s.d.: ${formattedDate}\n\nTerima kasih atas pembayaran Anda! 👑`;
       await sendWhatsappNotification(phone, waMsg);
 
       return { success: true, type: 'membership', username, expiryDate: formattedDate };
