@@ -8,9 +8,22 @@ let registeredMembers = {
     "Bryan": { phone: "08777776666", password: "123", isMember: true, expiryDate: oneMonthFromNow.toISOString() }
 };
 
+function findMemberCaseInsensitive(username) {
+    if (!username || !registeredMembers) return null;
+    const lower = username.trim().toLowerCase();
+    for (const key of Object.keys(registeredMembers)) {
+        if (key.toLowerCase() === lower) {
+            return { username: key, data: registeredMembers[key] };
+        }
+    }
+    return null;
+}
+
 function isUserActiveMember(u) {
-    if (!u || !registeredMembers[u]) return false;
-    const memberData = registeredMembers[u];
+    if (!u) return false;
+    const memberObj = findMemberCaseInsensitive(u);
+    if (!memberObj) return false;
+    const memberData = memberObj.data;
     if (!memberData.isMember) return false;
     if (!memberData.expiryDate) return false;
     return new Date() < new Date(memberData.expiryDate);
@@ -115,10 +128,11 @@ function loginMemberProcess() {
     const p = document.getElementById('log-password').value;
     if(!u || !p){ alert('Isi semua kolom!'); return; }
 
-    if(registeredMembers[u] && registeredMembers[u].password === p) {
-        loggedInUser = u;
-        document.getElementById('member-status-text').textContent = u;
-        if (isUserActiveMember(u)) {
+    const memberObj = findMemberCaseInsensitive(u);
+    if(memberObj && memberObj.data.password === p) {
+        loggedInUser = memberObj.username;
+        document.getElementById('member-status-text').textContent = loggedInUser;
+        if (isUserActiveMember(loggedInUser)) {
             document.getElementById('nav-member-btn').style.background = '#16a34a';
         } else {
             document.getElementById('nav-member-btn').style.background = 'var(--red)';
@@ -142,9 +156,11 @@ function logoutMember() {
 
 // PROFILE ACTIONS
 function openEditProfileForm() {
-    if (!loggedInUser || !registeredMembers[loggedInUser]) return;
-    const user = registeredMembers[loggedInUser];
-    document.getElementById('edit-name').value = loggedInUser;
+    if (!loggedInUser) return;
+    const memberObj = findMemberCaseInsensitive(loggedInUser);
+    if (!memberObj) return;
+    const user = memberObj.data;
+    document.getElementById('edit-name').value = memberObj.username;
     document.getElementById('edit-phone').value = user.phone;
     document.getElementById('edit-password').value = user.password;
     switchMemberView('edit-profile');
@@ -520,7 +536,8 @@ function payWithMidtrans() {
                 ? (isUserActiveMember(loggedInUser) ? 'member' : 'user')
                 : 'guest',
             bookingDetails: bookingDetails,
-            isFreeSession: isFreeBooking
+            isFreeSession: isFreeBooking,
+            username: loggedInUser
         })
     })
     .then(res => res.json())

@@ -139,7 +139,7 @@ router.get('/guests', async (req, res) => {
 
 // ── Initiate Midtrans Snap transaction ──
 router.post('/midtrans/create-transaction', async (req, res) => {
-  const { type, amount, name, phone, bookingDetails, bookerType, isFreeSession } = req.body;
+  const { type, amount, name, phone, bookingDetails, bookerType, isFreeSession, username } = req.body;
   if (!type || amount === undefined || !name || !phone) {
     return res.status(400).json({ error: 'type, amount, name, and phone are required' });
   }
@@ -157,7 +157,18 @@ router.post('/midtrans/create-transaction', async (req, res) => {
   if (type === 'booking' && isFreeSession) {
     try {
       const membersList = await shared.getMembersFromDb();
-      const member = membersList[name];
+      const targetUser = (username || name).trim();
+
+      let member = null;
+      let matchedUsername = null;
+      for (const [uname, mData] of Object.entries(membersList)) {
+        if (uname.toLowerCase() === targetUser.toLowerCase()) {
+          member = mData;
+          matchedUsername = uname;
+          break;
+        }
+      }
+
       if (!member || !member.isMember) {
         return res.status(400).json({ error: 'User is not a member.' });
       }
@@ -169,7 +180,7 @@ router.post('/midtrans/create-transaction', async (req, res) => {
 
       // 1. Update jatah free member di DB
       member.freeSessionUsed = freeUsed + 1;
-      await shared.saveMemberToDb(name, member);
+      await shared.saveMemberToDb(matchedUsername, member);
 
       // 2. Simpan booking terkonfirmasi dengan total = 0
       const { courtId, dateKey, slotKey } = bookingDetails;
