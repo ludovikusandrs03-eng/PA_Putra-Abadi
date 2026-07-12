@@ -308,18 +308,14 @@ async function getMembersFromDb() {
 
     // 1. Ambil dari tabel members (member aktif)
     const [memberRows] = await executeQuery(
-      `SELECT username, phone, password, expiry_date, fixed_court_id, fixed_day_of_week, fixed_slot_key, free_session_used FROM members`
+      `SELECT username, phone, password, expiry_date FROM members`
     );
     for (const row of memberRows) {
       result[row.username] = {
         phone: row.phone,
         password: row.password,
         isMember: true,
-        expiryDate: row.expiry_date || '',
-        fixedCourtId: row.fixed_court_id || null,
-        fixedDayOfWeek: row.fixed_day_of_week !== null ? Number(row.fixed_day_of_week) : null,
-        fixedSlotKey: row.fixed_slot_key || null,
-        freeSessionUsed: row.free_session_used ? true : false
+        expiryDate: row.expiry_date || ''
       };
     }
 
@@ -332,11 +328,7 @@ async function getMembersFromDb() {
         phone: row.phone,
         password: row.password,
         isMember: false,
-        expiryDate: '',
-        fixedCourtId: null,
-        fixedDayOfWeek: null,
-        fixedSlotKey: null,
-        freeSessionUsed: false
+        expiryDate: ''
       };
     }
 
@@ -355,26 +347,18 @@ async function saveMemberToDb(username, memberData) {
     if (memberData.isMember) {
       // 1. Simpan/update ke tabel members
       await executeQuery(
-        `INSERT INTO members (username, phone, password, is_member, expiry_date, fixed_court_id, fixed_day_of_week, fixed_slot_key, free_session_used)
-         VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
+        `INSERT INTO members (username, phone, password, is_member, expiry_date)
+         VALUES (?, ?, ?, 1, ?)
          ON DUPLICATE KEY UPDATE
-           phone              = VALUES(phone),
-           password           = VALUES(password),
-           is_member          = 1,
-           expiry_date        = VALUES(expiry_date),
-           fixed_court_id     = VALUES(fixed_court_id),
-           fixed_day_of_week  = VALUES(fixed_day_of_week),
-           fixed_slot_key     = VALUES(fixed_slot_key),
-           free_session_used  = VALUES(free_session_used)`,
+           phone       = VALUES(phone),
+           password    = VALUES(password),
+           is_member   = 1,
+           expiry_date = VALUES(expiry_date)`,
         [
           username,
           memberData.phone || '',
           memberData.password || '',
-          memberData.expiryDate || '',
-          memberData.fixedCourtId !== undefined ? memberData.fixedCourtId : null,
-          memberData.fixedDayOfWeek !== undefined && memberData.fixedDayOfWeek !== null ? Number(memberData.fixedDayOfWeek) : null,
-          memberData.fixedSlotKey !== undefined ? memberData.fixedSlotKey : null,
-          memberData.freeSessionUsed ? 1 : 0
+          memberData.expiryDate || ''
         ]
       );
       // 2. Jika sebelumnya ada di tabel guests, pindahkan booking-nya ke member lalu hapus data guest tersebut
@@ -592,25 +576,8 @@ async function ensureAppTables() {
         password VARCHAR(255) NOT NULL,
         is_member BOOLEAN DEFAULT FALSE,
         expiry_date VARCHAR(50) DEFAULT '',
-        fixed_court_id VARCHAR(20) DEFAULT NULL,
-        fixed_day_of_week INT DEFAULT NULL,
-        fixed_slot_key VARCHAR(50) DEFAULT NULL,
-        free_session_used BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `);
-
-    await dbPool.query(`
-      ALTER TABLE members ADD COLUMN IF NOT EXISTS fixed_court_id VARCHAR(20) DEFAULT NULL
-    `);
-    await dbPool.query(`
-      ALTER TABLE members ADD COLUMN IF NOT EXISTS fixed_day_of_week INT DEFAULT NULL
-    `);
-    await dbPool.query(`
-      ALTER TABLE members ADD COLUMN IF NOT EXISTS fixed_slot_key VARCHAR(50) DEFAULT NULL
-    `);
-    await dbPool.query(`
-      ALTER TABLE members ADD COLUMN IF NOT EXISTS free_session_used BOOLEAN DEFAULT FALSE
     `);
 
     await dbPool.query(`
@@ -861,7 +828,7 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
   } else if (orderId.startsWith('MEMB-')) {
     const pending = pendingMemberships[orderId];
     if (pending) {
-      const { username, phone, fixedCourtId, fixedDayOfWeek, fixedSlotKey } = pending;
+      const { username, phone } = pending;
 
       // Cek expiry member di DB
       const currentMembers = await getMembersFromDb();
@@ -881,28 +848,18 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
         phone,
         password: currentMember?.password || '123',
         isMember: true,
-        expiryDate: newExpiry.toISOString(),
-        fixedCourtId: fixedCourtId || null,
-        fixedDayOfWeek: fixedDayOfWeek !== undefined && fixedDayOfWeek !== null ? Number(fixedDayOfWeek) : null,
-        fixedSlotKey: fixedSlotKey || null,
-        freeSessionUsed: false
+        expiryDate: newExpiry.toISOString()
       };
-
-      const amountPaid = actualAmountPaid || 180000;
 
       // Simpan langsung ke TiDB
       await saveMemberToDb(username, updatedMember);
-      await savePaymentRecordToDatabase({ orderId, amount: amountPaid, paymentType, orderType: 'membership', status: 'paid' });
+      await savePaymentRecordToDatabase({ orderId, amount: 20000, paymentType, orderType: 'membership', status: 'paid' });
       delete pendingMemberships[orderId];
 
       const exp = newExpiry;
       const formattedDate = `${String(exp.getDate()).padStart(2, '0')}/${String(exp.getMonth() + 1).padStart(2, '0')}/${exp.getFullYear()}`;
 
-      const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-      const fixedDayName = fixedDayOfWeek !== null && fixedDayOfWeek !== undefined ? dayNames[Number(fixedDayOfWeek)] : '';
-      const fixedInfo = fixedCourtId ? `\n- Jadwal Tetap: Lapangan 0${fixedCourtId}, Hari ${fixedDayName}, Jam ${fixedSlotKey} (Kunci Otomatis)` : '';
-
-      const waMsg = `Halo ${username},\n\nSelamat! Pendaftaran member resmi Anda di *Putra Abadi Sport Center* telah aktif via pembayaran online.\n\n*Rincian Membership*:\n- Status: Member Resmi Aktif\n- Potongan Booking: Diskon 10% / jam${fixedInfo}\n- Berlaku s.d.: ${formattedDate}\n\nTerima kasih atas pembayaran Anda! 👑`;
+      const waMsg = `Halo ${username},\n\nSelamat! Pendaftaran member resmi Anda di *Putra Abadi Sport Center* telah aktif via pembayaran online.\n\n*Rincian Membership*:\n- Status: Member Resmi Aktif\n- Potongan Booking: Diskon 10% / jam\n- Berlaku s.d.: ${formattedDate}\n\nTerima kasih atas pembayaran Anda! 👑`;
       await sendWhatsappNotification(phone, waMsg);
 
       return { success: true, type: 'membership', username, expiryDate: formattedDate };
