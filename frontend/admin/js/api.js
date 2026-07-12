@@ -1,5 +1,7 @@
 // ── API HANDLERS TO BACKEND ──
-const API_URL = 'http://localhost:5000/api';
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:'
+    ? 'http://localhost:5000/api'
+    : '/api';
 
 async function loginAdmin(username, password, email) {
     const response = await fetch(`${API_URL}/admin/login`, {
