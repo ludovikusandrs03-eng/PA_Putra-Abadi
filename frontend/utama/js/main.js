@@ -313,14 +313,62 @@ function updateDays() {
 function updateSlots() {
     const grid = document.getElementById('slots-grid'); grid.innerHTML = '';
     const k = dk(dateList[activeDay]); const courtBk = bk[activeCourt] && bk[activeCourt][k] ? bk[activeCourt][k] : {};
+    const dayOfWeek = dateList[activeDay].getDay();
+
     st.forEach(slot => {
         const card = document.createElement('div'); card.className = 'slot-card'; const order = courtBk[slot];
+
+        // Cari apakah ada member aktif yang memiliki jadwal tetap pada slot ini
+        let lockingMember = null;
+        const now = new Date();
+        for (const username in registeredMembers) {
+            const m = registeredMembers[username];
+            const isMemberActive = m.isMember && m.expiryDate && new Date(m.expiryDate) > now;
+            if (isMemberActive && 
+                String(m.fixedCourtId) === String(activeCourt) && 
+                m.fixedDayOfWeek !== null && Number(m.fixedDayOfWeek) === dayOfWeek && 
+                m.fixedSlotKey === slot) {
+                lockingMember = { username, ...m };
+                break;
+            }
+        }
+
+        // Cek jika lock aktif (H-1 Jam sebelum main)
+        let isLocked = false;
+        let isSelfLock = false;
+        if (lockingMember) {
+            const [shour, sminute] = slot.split(' - ')[0].split(':').map(Number);
+            const slotStart = new Date(dateList[activeDay].getFullYear(), dateList[activeDay].getMonth(), dateList[activeDay].getDate(), shour, sminute);
+            const timeDiffMs = slotStart.getTime() - now.getTime();
+            const oneHourMs = 60 * 60 * 1000;
+
+            if (timeDiffMs >= oneHourMs) {
+                isLocked = true;
+                if (loggedInUser === lockingMember.username) {
+                    isSelfLock = true;
+                }
+            }
+        }
+
         if (order && order.status !== 'waiting_dp') {
             card.classList.add('disabled');
             card.innerHTML = `<span class="slot-time">${slot}</span><span class="slot-status status-booked">Penuh</span>`;
+        } else if (isLocked && !isSelfLock) {
+            // Terkunci untuk member lain
+            card.classList.add('disabled');
+            card.innerHTML = `<span class="slot-time">${slot}</span><span class="slot-status status-booked" style="color: #f87171;">Terkunci</span>`;
         } else {
             if (pickedSlot === slot) card.classList.add('active');
-            card.innerHTML = `<span class="slot-time">${slot}</span><span class="slot-status status-avail">${order ? 'Pending' : 'Tersedia'}</span>`;
+            let statusText = 'Tersedia';
+            let statusStyle = '';
+            if (order) {
+                statusText = 'Pending';
+            } else if (isSelfLock) {
+                statusText = lockingMember.freeSessionUsed ? 'Jadwal Anda' : 'Jadwal Anda (Gratis)';
+                statusStyle = 'color: #60a5fa; font-weight: 700;';
+            }
+
+            card.innerHTML = `<span class="slot-time">${slot}</span><span class="slot-status status-avail" style="${statusStyle}">${statusText}</span>`;
             card.onclick = () => {
                 if (pickedSlot === slot) { pickedSlot = null; document.getElementById('identity-section').style.display = 'none'; }
                 else { pickedSlot = slot; document.getElementById('identity-section').style.display = 'block'; }
@@ -343,13 +391,56 @@ function processToPayment() {
     const phoneInp = document.getElementById('inp-phone').value.trim();
     if(!nameInp || !phoneInp) { alert('Isi data diri!'); return; }
     tempName = nameInp; tempPhone = phoneInp;
+    
     const basePrice = 100000;
-    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
+    let finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
+    let dpAmount = 50000;
+
+    // Cek apakah ini sesi pertama gratis jadwal tetap milik member
+    const activeMember = registeredMembers[loggedInUser];
+    const k = dk(dateList[activeDay]);
+    const parts = k.split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const dayOfWeek = d.getDay();
+
+    const isFixedScheduleSlot = activeMember &&
+        activeMember.isMember &&
+        String(activeMember.fixedCourtId) === String(activeCourt) &&
+        activeMember.fixedDayOfWeek !== null && Number(activeMember.fixedDayOfWeek) === dayOfWeek &&
+        activeMember.fixedSlotKey === pickedSlot;
+
+    const isFreeSession = isFixedScheduleSlot && !activeMember.freeSessionUsed;
+
+    if (isFreeSession) {
+        finalPrice = 0;
+        dpAmount = 0;
+    }
+
     document.getElementById('sum-court-name').textContent = `Lapangan 0${activeCourt}`;
     document.getElementById('sum-price-base').textContent = `Rp ${basePrice.toLocaleString()}`;
-    document.getElementById('sum-total').textContent = `Rp ${(finalPrice - 50000).toLocaleString()}`;
+    
+    // Perbarui label biaya DP jika ada
+    const summaryRows = document.querySelectorAll('#payment-section .summary-row');
+    summaryRows.forEach(row => {
+        if (row.textContent.includes('Biaya DP')) {
+            const valSpan = row.querySelector('span:last-child');
+            if (valSpan) valSpan.textContent = `Rp ${dpAmount.toLocaleString()}`;
+        }
+    });
+
+    document.getElementById('sum-total').textContent = `Rp ${(finalPrice - dpAmount).toLocaleString()}`;
     const daysName = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
     document.getElementById('sum-time').textContent = `${daysName[dateList[activeDay].getDay()]} · ${dateList[activeDay].getDate()}/${dateList[activeDay].getMonth()+1} · ${pickedSlot}`;
+    
+    const payBtn = document.getElementById('btn-pay-midtrans');
+    if (payBtn) {
+        if (isFreeSession) {
+            payBtn.innerHTML = '<i class="ti ti-circle-check"></i> Konfirmasi Booking Gratis';
+        } else {
+            payBtn.innerHTML = '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
+        }
+    }
+
     document.getElementById('payment-section').style.display = 'block';
 }
 
@@ -455,8 +546,22 @@ function payWithMidtrans() {
         payBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Memproses...';
     }
 
-    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
+    const activeMember = registeredMembers[loggedInUser];
     const k = dk(dateList[activeDay]);
+    const parts = k.split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const dayOfWeek = d.getDay();
+
+    const isFixedScheduleSlot = activeMember &&
+        activeMember.isMember &&
+        String(activeMember.fixedCourtId) === String(activeCourt) &&
+        activeMember.fixedDayOfWeek !== null && Number(activeMember.fixedDayOfWeek) === dayOfWeek &&
+        activeMember.fixedSlotKey === pickedSlot;
+
+    const isFreeSession = isFixedScheduleSlot && !activeMember.freeSessionUsed;
+
+    const finalPrice = isFreeSession ? 0 : (isUserActiveMember(loggedInUser) ? 90000 : 100000);
+    const dpAmount = isFreeSession ? 0 : 50000;
 
     const bookingDetails = {
         courtId: activeCourt,
@@ -470,7 +575,7 @@ function payWithMidtrans() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             type: 'booking',
-            amount: 50000,
+            amount: dpAmount,
             name: nameInp,
             phone: phoneInp,
             bookerType: loggedInUser
@@ -483,7 +588,7 @@ function payWithMidtrans() {
     .then(data => {
         if (payBtn) {
             payBtn.disabled = false;
-            payBtn.innerHTML = '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
+            payBtn.innerHTML = isFreeSession ? '<i class="ti ti-circle-check"></i> Konfirmasi Booking Gratis' : '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
         }
 
         if (data.error) {
@@ -493,8 +598,13 @@ function payWithMidtrans() {
 
         currentMidtransOrderId = data.orderId;
 
-        if (data.mock) {
-            openSimulationModal(data.orderId, 50000, 'DP Booking Lapangan');
+        if (isFreeSession) {
+            alert('Booking gratis pertama berhasil dikonfirmasi secara otomatis!');
+            closeModal();
+            loadBookingsFromBackend();
+            loadMembersFromBackend();
+        } else if (data.mock) {
+            openSimulationModal(data.orderId, dpAmount, 'DP Booking Lapangan');
         } else {
             window.snap.pay(data.token, {
                 onSuccess: function(result) {
@@ -521,7 +631,7 @@ function payWithMidtrans() {
     .catch(err => {
         if (payBtn) {
             payBtn.disabled = false;
-            payBtn.innerHTML = '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
+            payBtn.innerHTML = isFreeSession ? '<i class="ti ti-circle-check"></i> Konfirmasi Booking Gratis' : '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
         }
         console.error('Fetch error:', err);
         alert('Terjadi kesalahan koneksi ke server.');
@@ -572,14 +682,22 @@ function payMembershipWithMidtrans() {
         payBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Memproses...';
     }
 
+    // Ambil pilihan jadwal tetap dari dropdown
+    const fixedCourtId = document.getElementById('upgrade-court').value;
+    const fixedDayOfWeek = document.getElementById('upgrade-day').value;
+    const fixedSlotKey = document.getElementById('upgrade-slot').value;
+
     fetch(`${API_URL}/midtrans/create-transaction`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             type: 'membership',
-            amount: 20000,
+            amount: 180000,
             name: name,
-            phone: phone
+            phone: phone,
+            fixedCourtId: fixedCourtId,
+            fixedDayOfWeek: fixedDayOfWeek,
+            fixedSlotKey: fixedSlotKey
         })
     })
     .then(res => res.json())
@@ -597,7 +715,7 @@ function payMembershipWithMidtrans() {
         currentMidtransOrderId = data.orderId;
 
         if (data.mock) {
-            openSimulationModal(data.orderId, 20000, 'Registrasi Member Baru');
+            openSimulationModal(data.orderId, 180000, 'Registrasi Member Baru');
         } else {
             window.snap.pay(data.token, {
                 onSuccess: function(result) {

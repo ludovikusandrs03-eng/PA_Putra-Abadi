@@ -229,13 +229,52 @@
                 <div id="member-upgrade-form" style="display: none;">
                     <h3 class="bform-title">👑 Pendaftaran Member Resmi</h3>
                     <p style="font-size: 12px; color: #4ade80; background: rgba(22,163,74,0.1); border: 1px solid rgba(22,163,74,0.2); padding: 8px; border-radius: 6px; margin-bottom: 15px; line-height: 1.4;">
-                        Biaya pendaftaran/perpanjangan: <strong>Rp 20.000</strong>. Dapatkan potongan harga <strong>Diskon 10% / jam</strong> untuk setiap booking lapangan selama 1 bulan!
+                        Biaya pendaftaran/deposit: <strong>Rp 180.000</strong>. Pilih 1 Jadwal Tetap mingguan yang terkunci otomatis untuk Anda. Pertama kali main pada jadwal tetap tersebut gratis, sisa sesi bayar dengan <strong>Diskon 10% / jam</strong>!
                     </p>
                     
-                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1.25rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
-                        <div style="font-size: 24px; color: #4ade80;"><i class="ti ti-shield-check"></i></div>
-                        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; text-transform: uppercase;">Pembayaran Instan Midtrans</div>
-                        <p style="font-size: 11px; color: #aaa; margin: 0; line-height: 1.4;">Bayar pendaftaran sebesar <strong>Rp 20.000</strong> secara instan via QRIS, GoPay, ShopeePay, dll. Akun member aktif secara otomatis!</p>
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 6px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;">
+                        <div class="bform-group">
+                            <label class="bform-label" style="color: #ccc; font-size: 11px;">Pilih Lapangan Tetap</label>
+                            <select class="bform-input" id="upgrade-court" style="background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 10px; border-radius: 4px; width: 100%; font-size: 12px;">
+                                <option value="1">Lapangan 1 (Indoor · Lantai Kayu)</option>
+                                <option value="2">Lapangan 2 (Indoor · Lantai Vinyl)</option>
+                            </select>
+                        </div>
+                        <div class="bform-group">
+                            <label class="bform-label" style="color: #ccc; font-size: 11px;">Pilih Hari Tetap</label>
+                            <select class="bform-input" id="upgrade-day" style="background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 10px; border-radius: 4px; width: 100%; font-size: 12px;">
+                                <option value="1">Senin</option>
+                                <option value="2">Selasa</option>
+                                <option value="3">Rabu</option>
+                                <option value="4">Kamis</option>
+                                <option value="5">Jumat</option>
+                                <option value="6">Sabtu</option>
+                                <option value="0">Minggu</option>
+                            </select>
+                        </div>
+                        <div class="bform-group">
+                            <label class="bform-label" style="color: #ccc; font-size: 11px;">Pilih Sesi Jam Tetap</label>
+                            <select class="bform-input" id="upgrade-slot" style="background: #1a1a1a; border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 6px 10px; border-radius: 4px; width: 100%; font-size: 12px;">
+                                <option value="10:00 - 11:00">10:00 - 11:00</option>
+                                <option value="11:00 - 12:00">11:00 - 12:00</option>
+                                <option value="12:00 - 13:00">12:00 - 13:00</option>
+                                <option value="13:00 - 14:00">13:00 - 14:00</option>
+                                <option value="14:00 - 15:00">14:00 - 15:00</option>
+                                <option value="15:00 - 16:00">15:00 - 16:00</option>
+                                <option value="16:00 - 17:00">16:00 - 17:00</option>
+                                <option value="17:00 - 18:00">17:00 - 18:00</option>
+                                <option value="18:00 - 19:00">18:00 - 19:00</option>
+                                <option value="19:00 - 20:00">19:00 - 20:00</option>
+                                <option value="20:00 - 21:00">20:00 - 21:00</option>
+                                <option value="21:00 - 22:00">21:00 - 22:00</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 0.25rem; margin-bottom: 1.5rem;">
+                        <div style="font-size: 20px; color: #4ade80;"><i class="ti ti-shield-check"></i></div>
+                        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase;">Pembayaran Instan Midtrans</div>
+                        <p style="font-size: 10px; color: #aaa; margin: 0; line-height: 1.4;">Bayar deposit sebesar <strong>Rp 180.000</strong> secara instan via QRIS, GoPay, ShopeePay, dll. Akun member & jadwal tetap aktif secara otomatis!</p>
                     </div>
 
                     <div style="display: flex; gap: 10px; margin-bottom: 15px;">

@@ -22,12 +22,16 @@ ON DUPLICATE KEY UPDATE
 
 -- 2. Tabel member
 CREATE TABLE IF NOT EXISTS members (
-  username    VARCHAR(100) PRIMARY KEY,
-  phone       VARCHAR(30)  DEFAULT '',
-  password    VARCHAR(255) NOT NULL,
-  is_member   BOOLEAN      DEFAULT FALSE,
-  expiry_date VARCHAR(50)  DEFAULT '',
-  created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+  username           VARCHAR(100) PRIMARY KEY,
+  phone              VARCHAR(30)  DEFAULT '',
+  password           VARCHAR(255) NOT NULL,
+  is_member          BOOLEAN      DEFAULT FALSE,
+  expiry_date        VARCHAR(50)  DEFAULT '',
+  fixed_court_id     VARCHAR(20)  DEFAULT NULL,
+  fixed_day_of_week  INT          DEFAULT NULL,
+  fixed_slot_key     VARCHAR(50)  DEFAULT NULL,
+  free_session_used  BOOLEAN      DEFAULT FALSE,
+  created_at         TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ----------------------------------------------------------------

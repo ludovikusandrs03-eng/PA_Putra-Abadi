@@ -137,7 +137,7 @@ router.get('/guests', async (req, res) => {
 
 // ── Initiate Midtrans Snap transaction ──
 router.post('/midtrans/create-transaction', async (req, res) => {
-  const { type, amount, name, phone, bookingDetails, bookerType } = req.body;
+  const { type, amount, name, phone, bookingDetails, bookerType, fixedCourtId, fixedDayOfWeek, fixedSlotKey } = req.body;
   if (!type || !amount || !name || !phone) {
     return res.status(400).json({ error: 'type, amount, name, and phone are required' });
   }
@@ -149,6 +149,86 @@ router.post('/midtrans/create-transaction', async (req, res) => {
   const resolvedBookerType = bookerType || 'guest';
   if (resolvedBookerType === 'guest' && type === 'booking') {
     guestId = await shared.upsertGuest(name, phone);
+  }
+
+  // ── Pengecekan Kunci Jadwal Tetap & Sesi Pertama Gratis ──
+  if (type === 'booking' && bookingDetails) {
+    const { courtId, dateKey, slotKey } = bookingDetails;
+    const parts = dateKey.split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const dayOfWeek = d.getDay(); // 0 = Minggu, 1 = Senin, ...
+
+    // Ambil daftar member
+    const membersList = await shared.getMembersFromDb();
+    
+    // Cari member yang mengunci slot ini
+    let lockingMember = null;
+    for (const username in membersList) {
+      const m = membersList[username];
+      if (m.isMember && 
+          String(m.fixedCourtId) === String(courtId) && 
+          m.fixedDayOfWeek !== null && Number(m.fixedDayOfWeek) === dayOfWeek && 
+          m.fixedSlotKey === slotKey) {
+        lockingMember = { username, ...m };
+        break;
+      }
+    }
+
+    if (lockingMember) {
+      // Cek apakah kunci masih aktif (H-1 Jam sebelum jam mulai slot)
+      const slotStartTimeStr = slotKey.split(' - ')[0]; // "19:00"
+      const [shour, sminute] = slotStartTimeStr.split(':').map(Number);
+      const slotStart = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), shour, sminute);
+      const now = new Date();
+
+      const timeDiffMs = slotStart.getTime() - now.getTime();
+      const oneHourMs = 60 * 60 * 1000;
+
+      if (timeDiffMs >= oneHourMs) {
+        // Kunci aktif! Hanya member yang bersangkutan yang boleh membooking
+        if (name !== lockingMember.username) {
+          return res.status(403).json({ error: `Slot ini terkunci untuk jadwal tetap member ${lockingMember.username} hingga 1 jam sebelum sesi dimulai.` });
+        }
+      }
+    }
+
+    // ── Cek Sesi Pertama Gratis Pemilik Jadwal Tetap ──
+    const activeMember = membersList[name];
+    const isThisSlotTheirFixedSchedule = activeMember && 
+      activeMember.isMember &&
+      String(activeMember.fixedCourtId) === String(courtId) &&
+      activeMember.fixedDayOfWeek !== null && Number(activeMember.fixedDayOfWeek) === dayOfWeek &&
+      activeMember.fixedSlotKey === slotKey;
+
+    if (isThisSlotTheirFixedSchedule && !activeMember.freeSessionUsed) {
+      // Bypass Midtrans pembayaran DP, konfirmasi gratis seketika
+      console.log(`[Free Session] Booking gratis pertama jadwal tetap untuk member: ${name}`);
+
+      // 1. Simpan booking ke DB
+      const bookingObj = {
+        name, phone,
+        bookerType: 'member',
+        guestId: null,
+        status: 'confirmed_dp',
+        paid: 0,
+        total: 0,
+        orderId
+      };
+      await shared.saveBookingToDb(courtId, dateKey, slotKey, bookingObj);
+
+      // 2. Tandai free_session_used di tabel members
+      activeMember.freeSessionUsed = true;
+      await shared.saveMemberToDb(name, activeMember);
+
+      // 3. Simpan data pembayaran Rp 0 ke database
+      await shared.savePaymentRecordToDatabase({ orderId, amount: 0, paymentType: 'free_session', orderType: 'booking', status: 'paid' });
+
+      // 4. Kirim notifikasi WhatsApp
+      const waMsg = `Halo ${name},\n\nBooking Jadwal Tetap Gratis Pertama Anda di *Putra Abadi Sport Center* telah berhasil dikonfirmasi!\n\n*Rincian Booking*:\n- Lapangan: Lapangan 0${courtId}\n- Tanggal: ${dateKey}\n- Jam Sesi: ${slotKey}\n- Total Tarif: Rp 0 (Sesi Pertama Deposit)\n- Status: Sukses Dikonfirmasi (Gratis) 🏀`;
+      await shared.sendWhatsappNotification(phone, waMsg);
+
+      return res.json({ success: true, freeSession: true, orderId });
+    }
   }
 
   // ── Mock mode (Midtrans tidak dikonfigurasi) ──
@@ -169,7 +249,13 @@ router.post('/midtrans/create-transaction', async (req, res) => {
       // Simpan langsung ke TiDB
       await shared.saveBookingToDb(courtId, dateKey, slotKey, bookingObj);
     } else if (type === 'membership') {
-      shared.pendingMemberships[orderId] = { username: name, phone };
+      shared.pendingMemberships[orderId] = { 
+        username: name, 
+        phone,
+        fixedCourtId: fixedCourtId || null,
+        fixedDayOfWeek: fixedDayOfWeek !== undefined && fixedDayOfWeek !== null ? Number(fixedDayOfWeek) : null,
+        fixedSlotKey: fixedSlotKey || null
+      };
     }
 
     return res.json({ token: `mock-snap-token-${orderId}`, orderId, mock: true });
@@ -199,7 +285,13 @@ router.post('/midtrans/create-transaction', async (req, res) => {
       };
       await shared.saveBookingToDb(courtId, dateKey, slotKey, bookingObj);
     } else if (type === 'membership') {
-      shared.pendingMemberships[orderId] = { username: name, phone };
+      shared.pendingMemberships[orderId] = { 
+        username: name, 
+        phone,
+        fixedCourtId: fixedCourtId || null,
+        fixedDayOfWeek: fixedDayOfWeek !== undefined && fixedDayOfWeek !== null ? Number(fixedDayOfWeek) : null,
+        fixedSlotKey: fixedSlotKey || null
+      };
     }
 
     res.json({ token: transaction.token, orderId });
@@ -218,7 +310,7 @@ router.get('/midtrans/check-status', async (req, res) => {
 
   // Mock / simulasi
   if (!shared.isMidtransConfigured || order_id.includes('mock') || order_id.includes('MOCK')) {
-    const result = await shared.confirmPayment(order_id, 'qris', order_id.startsWith('BOOK') ? 50000 : 20000);
+    const result = await shared.confirmPayment(order_id, 'qris', order_id.startsWith('BOOK') ? 50000 : 180000);
     return res.json(result);
   }
 
