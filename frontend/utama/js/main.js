@@ -274,8 +274,21 @@ function openModal(courtId, preserveSlot = false) {
         document.getElementById('modal-sub').textContent = "Indoor · Lantai Vinyl Biru";
     }
     const mAlert = document.getElementById('booking-member-alert');
-    if(loggedInUser && registeredMembers[loggedInUser]?.isMember) {
+    if(loggedInUser && isUserActiveMember(loggedInUser)) {
         mAlert.style.display = 'block';
+        const freeUsed = parseInt(registeredMembers[loggedInUser].freeSessionUsed || 0);
+        const freeRemaining = Math.max(0, 2 - freeUsed);
+        if (freeRemaining > 0) {
+            mAlert.innerHTML = `💡 <strong>Jatah Free Member Aktif:</strong> Anda masih memiliki jatah bermain gratis sebanyak <strong>${freeRemaining} Sesi / Jam</strong>! Sesi booking kali ini akan bernilai <strong>Rp 0</strong>.`;
+            mAlert.style.background = 'rgba(22,163,74,0.1)';
+            mAlert.style.border = '1px solid rgba(22,163,74,0.2)';
+            mAlert.style.color = '#4ade80';
+        } else {
+            mAlert.innerHTML = `💡 <strong>Keuntungan Member:</strong> Jatah free 2 jam Anda telah habis. Anda mendapatkan potongan langsung sebesar <strong>Diskon 10% / Jam</strong> (Tarif Rp 90.000) karena Anda terdaftar sebagai member resmi!`;
+            mAlert.style.background = 'rgba(255,255,255,0.03)';
+            mAlert.style.border = '1px solid rgba(255,255,255,0.05)';
+            mAlert.style.color = '#fff';
+        }
     } else {
         mAlert.style.display = 'none';
     }
@@ -346,10 +359,32 @@ function processToPayment() {
     if(!nameInp || !phoneInp) { alert('Isi data diri!'); return; }
     tempName = nameInp; tempPhone = phoneInp;
     const basePrice = 100000;
-    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
+    const isMember = isUserActiveMember(loggedInUser);
+    const freeUsed = loggedInUser && registeredMembers[loggedInUser] ? parseInt(registeredMembers[loggedInUser].freeSessionUsed || 0) : 0;
+    const freeRemaining = isMember ? Math.max(0, 2 - freeUsed) : 0;
+    const isFreeBooking = isMember && freeRemaining > 0;
+
+    let finalPrice = isMember ? 90000 : 100000;
+    let dpPrice = 50000;
+    let totalToPay = finalPrice - dpPrice;
+
     document.getElementById('sum-court-name').textContent = `Lapangan 0${activeCourt}`;
-    document.getElementById('sum-price-base').textContent = `Rp ${basePrice.toLocaleString()}`;
-    document.getElementById('sum-total').textContent = `Rp ${(finalPrice - 50000).toLocaleString()}`;
+    
+    if (isFreeBooking) {
+        finalPrice = 0;
+        dpPrice = 0;
+        totalToPay = 0;
+        document.getElementById('sum-price-base').textContent = `Rp 0 (Menggunakan Jatah Free Member)`;
+        document.getElementById('sum-total').textContent = `Rp 0`;
+        const payBtn = document.getElementById('btn-pay-midtrans');
+        if (payBtn) payBtn.innerHTML = `<i class="ti ti-gift"></i> Gunakan Jatah Free 1 Jam`;
+    } else {
+        document.getElementById('sum-price-base').textContent = `Rp ${basePrice.toLocaleString()}`;
+        document.getElementById('sum-total').textContent = `Rp ${totalToPay.toLocaleString()}`;
+        const payBtn = document.getElementById('btn-pay-midtrans');
+        if (payBtn) payBtn.innerHTML = `<i class="ti ti-credit-card"></i> Bayar DP Sekarang`;
+    }
+
     const daysName = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
     document.getElementById('sum-time').textContent = `${daysName[dateList[activeDay].getDay()]} · ${dateList[activeDay].getDate()}/${dateList[activeDay].getMonth()+1} · ${pickedSlot}`;
     document.getElementById('payment-section').style.display = 'block';
@@ -457,7 +492,13 @@ function payWithMidtrans() {
         payBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Memproses...';
     }
 
-    const finalPrice = isUserActiveMember(loggedInUser) ? 90000 : 100000;
+    const isMember = isUserActiveMember(loggedInUser);
+    const freeUsed = loggedInUser && registeredMembers[loggedInUser] ? parseInt(registeredMembers[loggedInUser].freeSessionUsed || 0) : 0;
+    const freeRemaining = isMember ? Math.max(0, 2 - freeUsed) : 0;
+    const isFreeBooking = isMember && freeRemaining > 0;
+
+    const finalPrice = isFreeBooking ? 0 : (isMember ? 90000 : 100000);
+    const amountToPay = isFreeBooking ? 0 : 50000;
     const k = dk(dateList[activeDay]);
 
     const bookingDetails = {
@@ -472,24 +513,33 @@ function payWithMidtrans() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             type: 'booking',
-            amount: 50000,
+            amount: amountToPay,
             name: nameInp,
             phone: phoneInp,
             bookerType: loggedInUser
                 ? (isUserActiveMember(loggedInUser) ? 'member' : 'user')
                 : 'guest',
-            bookingDetails: bookingDetails
+            bookingDetails: bookingDetails,
+            isFreeSession: isFreeBooking
         })
     })
     .then(res => res.json())
     .then(data => {
         if (payBtn) {
             payBtn.disabled = false;
-            payBtn.innerHTML = '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
+            payBtn.innerHTML = isFreeBooking ? `<i class="ti ti-gift"></i> Gunakan Jatah Free 1 Jam` : '<i class="ti ti-credit-card"></i> Bayar DP Sekarang';
         }
 
         if (data.error) {
             alert('Gagal membuat transaksi: ' + data.error);
+            return;
+        }
+
+        if (data.free) {
+            alert('Booking berhasil dikonfirmasi menggunakan jatah free member Anda!');
+            closeModal();
+            loadBookingsFromBackend();
+            loadMembersFromBackend();
             return;
         }
 
@@ -579,7 +629,7 @@ function payMembershipWithMidtrans() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             type: 'membership',
-            amount: 20000,
+            amount: 180000,
             name: name,
             phone: phone
         })
@@ -599,7 +649,7 @@ function payMembershipWithMidtrans() {
         currentMidtransOrderId = data.orderId;
 
         if (data.mock) {
-            openSimulationModal(data.orderId, 20000, 'Registrasi Member Baru');
+            openSimulationModal(data.orderId, 180000, 'Registrasi Member Baru');
         } else {
             window.snap.pay(data.token, {
                 onSuccess: function(result) {

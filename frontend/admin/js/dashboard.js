@@ -583,7 +583,8 @@ function saveNewMember() {
         phone: phone,
         password: "123",
         isMember: true,
-        expiryDate: expiry.toISOString()
+        expiryDate: expiry.toISOString(),
+        freeSessionUsed: 0
     };
     
     syncMembersToBackend();
@@ -597,6 +598,8 @@ function openMemberDetail(username) {
     const expiry = new Date(user.expiryDate);
     const active = expiry > new Date();
     const statusText = active ? '<span style="color:#4ade80; font-weight:bold;">Aktif</span>' : '<span style="color:#f87171; font-weight:bold;">Expired</span>';
+    const freeUsed = parseInt(user.freeSessionUsed || 0);
+    const freeRemaining = Math.max(0, 2 - freeUsed);
     
     document.getElementById('adm-modal-title').textContent = "Detail Informasi Member";
     document.getElementById('admin-action-modal').classList.add('open');
@@ -609,6 +612,10 @@ function openMemberDetail(username) {
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span style="color:#aaa;">No. WhatsApp</span>
                 <strong style="color:#fff;">${user.phone}</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <span style="color:#aaa;">Jatah Free Main</span>
+                <strong style="color:#4ade80;">${freeRemaining} Jam (${freeUsed} Terpakai)</strong>
             </div>
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <span style="color:#aaa;">Masa Berlaku</span>
