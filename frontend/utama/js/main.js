@@ -58,8 +58,8 @@ let pendingRegPassword = "";
 window.addEventListener('DOMContentLoaded', () => { 
     // Adjust admin link if opened via file protocol
     const adminLink = document.getElementById('logo-admin-link');
-    if (adminLink && window.location.protocol === 'file:') {
-        adminLink.setAttribute('href', '../admin/index.html');
+    if (adminLink && (window.location.protocol === 'file:' || window.location.port === '5501')) {
+        adminLink.setAttribute('href', '/frontend/admin/index.html');
     }
 
     // Muat data dari backend saat inisialisasi
