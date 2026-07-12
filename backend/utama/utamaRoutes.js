@@ -12,6 +12,8 @@ router.get('/status', async (req, res) => {
     } catch (err) {
       dbStatus = `error: ${err.message}`;
     }
+  } else if (shared.dbConnectionError) {
+    dbStatus = `disconnected (Error: ${shared.dbConnectionError})`;
   }
 
   res.json({

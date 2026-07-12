@@ -654,9 +654,7 @@ async function initializeAdminAccount() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// TiDB Startup: Auto-create DB, tables, then seed cache
-// ─────────────────────────────────────────────────────────────
+let dbConnectionError = null;
 
 if (process.env.TIDB_HOST) {
   (async () => {
@@ -687,12 +685,14 @@ if (process.env.TIDB_HOST) {
       console.log('Data members & bookings loaded from TiDB into cache.');
 
     } catch (err) {
+      dbConnectionError = err.message;
       console.error('Gagal inisialisasi TiDB, fallback ke mode lokal JSON:', err.message);
       // Fallback: load dari JSON jika ada
       _loadJsonFallback();
     }
   })();
 } else {
+  dbConnectionError = 'TIDB_HOST environment variable not found.';
   console.log('Warning: TIDB_HOST not found in .env, running in local JSON fallback mode.');
   _loadJsonFallback();
 }
@@ -888,6 +888,7 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
 
 module.exports = {
   get dbPool() { return dbPool; },
+  get dbConnectionError() { return dbConnectionError; },
   get bookings() { return bookings; },
   set bookings(val) { bookings = val; },
   get members() { return members; },
