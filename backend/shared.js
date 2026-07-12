@@ -306,16 +306,29 @@ async function getMembersFromDb() {
   try {
     const result = {};
 
-    // 1. Ambil dari tabel members (member aktif maupun non-member terdaftar)
+    // 1. Ambil dari tabel members (member aktif)
     const [memberRows] = await executeQuery(
-      `SELECT username, phone, password, is_member, expiry_date FROM members`
+      `SELECT username, phone, password, expiry_date FROM members`
     );
     for (const row of memberRows) {
       result[row.username] = {
         phone: row.phone,
         password: row.password,
-        isMember: row.is_member === 1 || row.is_member === true,
+        isMember: true,
         expiryDate: row.expiry_date || ''
+      };
+    }
+
+    // 2. Ambil dari tabel guests (non-member yang memiliki akun)
+    const [guestRows] = await executeQuery(
+      `SELECT name, phone, password FROM guests WHERE password IS NOT NULL`
+    );
+    for (const row of guestRows) {
+      result[row.name] = {
+        phone: row.phone,
+        password: row.password,
+        isMember: false,
+        expiryDate: ''
       };
     }
 
@@ -331,33 +344,51 @@ async function getMembersFromDb() {
 async function saveMemberToDb(username, memberData) {
   if (!dbPool) return;
   try {
-    const isMemberVal = (memberData.isMember === true || memberData.isMember === 'true' || memberData.isMember === 1) ? 1 : 0;
+    const isMember = (memberData.isMember === true || memberData.isMember === 'true' || memberData.isMember === 1);
 
-    // 1. Simpan/update ke tabel members
-    await executeQuery(
-      `INSERT INTO members (username, phone, password, is_member, expiry_date)
-       VALUES (?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         phone       = VALUES(phone),
-         password    = VALUES(password),
-         is_member   = VALUES(is_member),
-         expiry_date = VALUES(expiry_date)`,
-      [
-        username,
-        memberData.phone || '',
-        memberData.password || '',
-        isMemberVal,
-        memberData.expiryDate || ''
-      ]
-    );
+    if (isMember) {
+      // 1. Simpan/update ke tabel members
+      await executeQuery(
+        `INSERT INTO members (username, phone, password, is_member, expiry_date)
+         VALUES (?, ?, ?, 1, ?)
+         ON DUPLICATE KEY UPDATE
+           phone       = VALUES(phone),
+           password    = VALUES(password),
+           is_member   = 1,
+           expiry_date = VALUES(expiry_date)`,
+        [
+          username,
+          memberData.phone || '',
+          memberData.password || '',
+          memberData.expiryDate || ''
+        ]
+      );
 
-    // 2. Jika sebelumnya ada di tabel guests, pindahkan booking-nya ke member lalu hapus data guest tersebut
-    const [gRows] = await executeQuery(`SELECT id FROM guests WHERE name = ? LIMIT 1`, [username]);
-    if (gRows && gRows[0]) {
-      const gId = gRows[0].id;
-      const resolvedBookerType = isMemberVal ? 'member' : 'user';
-      await executeQuery(`UPDATE bookings SET guest_id = NULL, booker_type = ? WHERE guest_id = ?`, [resolvedBookerType, gId]);
-      await executeQuery(`DELETE FROM guests WHERE id = ?`, [gId]);
+      // 2. Jika sebelumnya ada di tabel guests, pindahkan booking-nya ke member lalu hapus data guest tersebut
+      const [gRows] = await executeQuery(`SELECT id FROM guests WHERE name = ? LIMIT 1`, [username]);
+      if (gRows && gRows[0]) {
+        const gId = gRows[0].id;
+        await executeQuery(`UPDATE bookings SET guest_id = NULL, booker_type = 'member' WHERE guest_id = ?`, [gId]);
+        await executeQuery(`DELETE FROM guests WHERE id = ?`, [gId]);
+      }
+    } else {
+      // 1. Simpan/update ke tabel guests
+      await executeQuery(
+        `INSERT INTO guests (name, phone, password, user_type)
+         VALUES (?, ?, ?, 'user')
+         ON DUPLICATE KEY UPDATE
+           phone     = VALUES(phone),
+           password  = VALUES(password),
+           user_type = 'user'`,
+        [
+          username,
+          memberData.phone || '',
+          memberData.password || ''
+        ]
+      );
+
+      // 2. Hapus dari tabel members jika sebelumnya ada di sana
+      await executeQuery(`DELETE FROM members WHERE username = ?`, [username]);
     }
 
     // update cache
@@ -602,11 +633,11 @@ async function ensureAppTables() {
     `);
 
     await dbPool.query(`
-      INSERT IGNORE INTO members (username, phone, password, is_member, expiry_date)
-      SELECT name, phone, password, 0, '' FROM guests WHERE user_type = 'user' AND password IS NOT NULL
+      INSERT IGNORE INTO guests (name, phone, password, user_type)
+      SELECT username, phone, password, 'user' FROM members WHERE is_member = 0 OR is_member = FALSE OR is_member IS NULL
     `);
     await dbPool.query(`
-      DELETE FROM guests WHERE user_type = 'user'
+      DELETE FROM members WHERE is_member = 0 OR is_member = FALSE OR is_member IS NULL
     `);
 
     console.log('TiDB tables ready: admin / member / guest / booking / payment.');
