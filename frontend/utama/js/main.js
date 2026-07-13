@@ -144,23 +144,68 @@ function loginMemberProcess() {
     const p = document.getElementById('log-password').value;
     if(!u || !p){ alert('Isi semua kolom!'); return; }
 
-    const memberObj = findMemberCaseInsensitive(u);
-    if(memberObj && memberObj.data.password === p) {
-        loggedInUser = memberObj.username;
-        sessionStorage.setItem('loggedInUser', loggedInUser);
-        document.getElementById('member-status-text').textContent = loggedInUser;
-        if (isUserActiveMember(loggedInUser)) {
-            document.getElementById('nav-member-btn').style.background = '#16a34a';
+    // Tampilkan loader di tombol login
+    const loginForm = document.getElementById('member-login-form');
+    const submitBtn = loginForm.querySelector('button[type="submit"]');
+    const oldText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Memverifikasi...';
+
+    // Ambil data terbaru dari backend terlebih dahulu untuk memastikan sinkronisasi
+    fetch(`${API_URL}/members?t=${Date.now()}`)
+    .then(res => {
+        if (!res.ok) throw new Error('Gagal mengambil data dari server');
+        return res.json();
+    })
+    .then(data => {
+        registeredMembers = data;
+        
+        // Lakukan verifikasi login
+        const memberObj = findMemberCaseInsensitive(u);
+        if(memberObj && memberObj.data.password === p) {
+            loggedInUser = memberObj.username;
+            sessionStorage.setItem('loggedInUser', loggedInUser);
+            document.getElementById('member-status-text').textContent = loggedInUser;
+            if (isUserActiveMember(loggedInUser)) {
+                document.getElementById('nav-member-btn').style.background = '#16a34a';
+            } else {
+                document.getElementById('nav-member-btn').style.background = 'var(--red)';
+            }
+            updateJoinMemberBtn();
+            switchMemberView('choice'); 
+            closeMemberModal();
+            if (pickedSlot) {
+                openModal(activeCourt, true);
+                processToPayment();
+            }
+        } else { 
+            alert('Kredensial salah!'); 
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        // Jika server bermasalah, coba verifikasi dengan cache lokal yang ada
+        const memberObj = findMemberCaseInsensitive(u);
+        if(memberObj && memberObj.data.password === p) {
+            loggedInUser = memberObj.username;
+            sessionStorage.setItem('loggedInUser', loggedInUser);
+            document.getElementById('member-status-text').textContent = loggedInUser;
+            if (isUserActiveMember(loggedInUser)) {
+                document.getElementById('nav-member-btn').style.background = '#16a34a';
+            } else {
+                document.getElementById('nav-member-btn').style.background = 'var(--red)';
+            }
+            updateJoinMemberBtn();
+            switchMemberView('choice'); 
+            closeMemberModal();
         } else {
-            document.getElementById('nav-member-btn').style.background = 'var(--red)';
+            alert('Gagal menghubungkan ke server untuk verifikasi login.');
         }
-        updateJoinMemberBtn();
-        switchMemberView('choice'); closeMemberModal();
-        if (pickedSlot) {
-            openModal(activeCourt, true);
-            processToPayment();
-        }
-    } else { alert('Kredensial salah!'); }
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = oldText;
+    });
 }
 
 function logoutMember() {
