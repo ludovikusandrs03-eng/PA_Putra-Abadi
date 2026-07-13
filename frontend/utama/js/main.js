@@ -1,12 +1,7 @@
 const oneMonthFromNow = new Date();
 oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
 
-let registeredMembers = {
-    "Angelo": { phone: "08123456789", password: "123", isMember: true, expiryDate: oneMonthFromNow.toISOString() },
-    "Rio": { phone: "08987654321", password: "123", isMember: true, expiryDate: oneMonthFromNow.toISOString() },
-    "Andrew": { phone: "08555554444", password: "123", isMember: true, expiryDate: oneMonthFromNow.toISOString() },
-    "Bryan": { phone: "08777776666", password: "123", isMember: true, expiryDate: oneMonthFromNow.toISOString() }
-};
+let registeredMembers = {};
 
 function findMemberCaseInsensitive(username) {
     if (!username) return null;
@@ -49,18 +44,7 @@ for (let i = 0; i < 7; i++) {
 const dk = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const st = ["10:00 - 11:00","11:00 - 12:00","12:00 - 13:00","13:00 - 14:00","14:00 - 15:00","15:00 - 16:00","16:00 - 17:00","17:00 - 18:00","18:00 - 19:00","19:00 - 20:00","20:00 - 21:00","21:00 - 22:00"];
 
-let bk = {
-    1: { 
-        [dk(dateList[0])]: { 
-            "19:00 - 20:00": { name: "Budi", phone: "081222", status: "confirmed_dp", paid: 50000, total: 100000 }
-        } 
-    },
-    2: { 
-        [dk(dateList[0])]: { 
-            "18:00 - 19:00": { name: "Angelo", phone: "08123456789", status: "settled", paid: 80000, total: 80000 } 
-        } 
-    }
-};
+let bk = {};
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:'
     ? 'http://localhost:5000/api'

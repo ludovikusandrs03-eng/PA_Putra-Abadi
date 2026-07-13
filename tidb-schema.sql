@@ -1,7 +1,3 @@
--- ============================================================
---  Putra Abadi Sport Center - TiDB Schema
--- ============================================================
-
 -- 1. Tabel kredensial admin
 CREATE TABLE IF NOT EXISTS admin_credentials (
   id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -18,8 +14,6 @@ ON DUPLICATE KEY UPDATE
   password   = VALUES(password),
   email      = VALUES(email);
 
--- ----------------------------------------------------------------
-
 -- 2. Tabel member
 CREATE TABLE IF NOT EXISTS members (
   username    VARCHAR(100) PRIMARY KEY,
@@ -30,12 +24,7 @@ CREATE TABLE IF NOT EXISTS members (
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
--- ----------------------------------------------------------------
-
--- 3. Tabel tamu / non-member (booking tanpa akun)
---    Tamu tidak punya password. Data disimpan agar riwayat booking
---    tidak hilang saat server restart.
---    user_type : "guest" (tidak punya akun, booking langsung)
+-- 3. Tabel Guest
 CREATE TABLE IF NOT EXISTS guests (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   name       VARCHAR(150) NOT NULL,
@@ -47,17 +36,7 @@ CREATE TABLE IF NOT EXISTS guests (
   UNIQUE KEY uk_guest (name, phone)
 );
 
--- ----------------------------------------------------------------
-
--- 5. Tabel booking lapangan
---    court_id  : nomor lapangan (mis. "1", "2")
---    date_key  : tanggal sesi   (mis. "2025-07-09")
---    slot_key  : jam sesi       (mis. "19:00 - 20:00")
---    status flow:
---      waiting_dp   -> booking dibuat, menunggu pembayaran DP via Midtrans
---      confirmed_dp -> DP diterima & tervalidasi otomatis oleh Midtrans webhook
---      settled      -> admin melunasi sisa tagihan di lapangan
---      cancelled    -> dibatalkan oleh admin
+-- 4. Tabel booking lapangan
 CREATE TABLE IF NOT EXISTS bookings (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   court_id     VARCHAR(20)   NOT NULL,
@@ -66,8 +45,6 @@ CREATE TABLE IF NOT EXISTS bookings (
   name         VARCHAR(150)  NOT NULL,
   phone        VARCHAR(30)   DEFAULT '',
   booker_type  VARCHAR(20)   NOT NULL DEFAULT 'guest',
-  -- booker_type: 'member' | 'user' | 'guest'
-  -- guest_id NULL berarti yang booking adalah member/user terdaftar
   guest_id     INT           DEFAULT NULL,
   status       VARCHAR(30)   NOT NULL DEFAULT 'waiting_dp',
   paid         DECIMAL(12,2) DEFAULT 0,
@@ -77,11 +54,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   UNIQUE KEY uk_booking (court_id, date_key, slot_key)
 );
 
--- ----------------------------------------------------------------
-
--- 6. Tabel riwayat pembayaran
---    order_type : "booking" | "membership"
---    status     : "paid" | "pending" | "failed"
+-- 6. Tabel Payment
 CREATE TABLE IF NOT EXISTS payments (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   order_id     VARCHAR(100)  NOT NULL,

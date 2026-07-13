@@ -7,15 +7,10 @@ const { Snap } = require('midtrans-client');
 // Load environment variables from parent folder .env file
 require('dotenv').config({ path: path.join(__dirname, '../.env'), override: true });
 
-// ─────────────────────────────────────────────────────────────
 // In-memory cache (fallback saat DB offline)
-// ─────────────────────────────────────────────────────────────
 let bookings = {};
 let members = {};
 
-// ─────────────────────────────────────────────────────────────
-// TiDB Database Pool
-// ─────────────────────────────────────────────────────────────
 let dbPool = null;
 
 const sslConfig = { rejectUnauthorized: true };
@@ -42,11 +37,7 @@ const baseDbConfig = {
   connectTimeout: 15000            // timeout koneksi 15 detik
 };
 
-
-
-// ─────────────────────────────────────────────────────────────
 // Resend
-// ─────────────────────────────────────────────────────────────
 let resend = null;
 if (process.env.RESEND_API_KEY) {
   resend = new Resend(process.env.RESEND_API_KEY);
@@ -55,9 +46,7 @@ if (process.env.RESEND_API_KEY) {
   console.log('Warning: RESEND_API_KEY not found in .env, running emails in mock mode.');
 }
 
-// ─────────────────────────────────────────────────────────────
 // Midtrans Snap
-// ─────────────────────────────────────────────────────────────
 let snap = null;
 const isMidtransConfigured = !!(
   process.env.MIDTRANS_SERVER_KEY &&
@@ -75,15 +64,10 @@ if (isMidtransConfigured) {
   console.log('Warning: Midtrans credentials not found in .env, running Midtrans in mock/simulation mode.');
 }
 
-// ─────────────────────────────────────────────────────────────
 // Pending Membership (in-memory, cleared on restart)
-// ─────────────────────────────────────────────────────────────
 let pendingMemberships = {};
 
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
 // Admin config fallback (in-memory only)
-// ─────────────────────────────────────────────────────────────
 let adminConfig = { username: 'admin', password: 'admin123', email: '' };
 
 function saveAdminConfig(config = adminConfig) {
@@ -103,9 +87,7 @@ function updateAdminConfig(nextConfig = {}) {
   return saveAdminConfig(nextConfig);
 }
 
-// ─────────────────────────────────────────────────────────────
 // DB Helper: Bookings
-// ─────────────────────────────────────────────────────────────
 
 // Ambil semua booking dari TiDB, rebuild ke format nested { courtId: { dateKey: { slotKey: booking } } }
 async function getBookingsFromDb() {
@@ -467,10 +449,7 @@ function saveMembersToFile() {
   // Mode murni database: no-op
 }
 
-// ─────────────────────────────────────────────────────────────
 // DB Helper: Guests
-// ─────────────────────────────────────────────────────────────
-
 // Simpan atau update tamu ke TiDB, return guest_id
 async function upsertGuest(name, phone) {
   if (!dbPool) {
@@ -512,10 +491,7 @@ async function getGuestsFromDatabase() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
 // DB Helper: Payments
-// ─────────────────────────────────────────────────────────────
-
 async function savePaymentRecordToDatabase({ orderId, amount, paymentType = 'qris', orderType = 'booking', status = 'paid' }) {
   if (!dbPool) {
     const pool = await getDbPool();
@@ -531,10 +507,7 @@ async function savePaymentRecordToDatabase({ orderId, amount, paymentType = 'qri
   }
 }
 
-// ─────────────────────────────────────────────────────────────
 // DB Helper: Admin
-// ─────────────────────────────────────────────────────────────
-
 async function getAdminAccount(username = adminConfig.username) {
   const pool = await getDbPool();
   if (pool) {
@@ -588,10 +561,7 @@ async function saveAdminAccount(nextConfig = {}) {
   return updateAdminConfig(nextConfig);
 }
 
-// ─────────────────────────────────────────────────────────────
 // DB Init: Ensure Tables
-// ─────────────────────────────────────────────────────────────
-
 async function ensureAppTables() {
   if (!dbPool) return;
   try {
@@ -743,10 +713,8 @@ async function getDbPool() {
   return poolPromise;
 }
 
-// ─────────────────────────────────────────────────────────────
 // executeQuery: wrapper dengan auto-reconnect saat ECONNRESET
 // TiDB Cloud Serverless bisa memutus koneksi idle → perlu retry
-// ─────────────────────────────────────────────────────────────
 async function executeQuery(sql, params = []) {
   const pool = await getDbPool();
   if (!pool) return [[], []];
@@ -796,9 +764,7 @@ function _loadJsonFallback() {
   if (Object.keys(bookings).length) console.log('Bookings loaded from JSON fallback.');
 }
 
-// ─────────────────────────────────────────────────────────────
 // Notification Helpers
-// ─────────────────────────────────────────────────────────────
 
 async function sendAdminPasswordResetEmail(targetEmail, username, password) {
   if (!targetEmail) {
@@ -858,10 +824,8 @@ async function sendWhatsappNotification(target, message) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
 // confirmPayment: dipanggil oleh Midtrans webhook / check-status
 // Sekarang baca & tulis langsung dari/ke TiDB
-// ─────────────────────────────────────────────────────────────
 
 async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
   if (orderId.startsWith('BOOK-')) {
@@ -930,9 +894,7 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
   return { success: false, error: 'Order ID not found or already processed' };
 }
 
-// ─────────────────────────────────────────────────────────────
 // Exports
-// ─────────────────────────────────────────────────────────────
 
 module.exports = {
   get dbPool() { return dbPool; },
