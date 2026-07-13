@@ -122,7 +122,10 @@ function updateAdminConfig(nextConfig = {}) {
 
 // Ambil semua booking dari TiDB, rebuild ke format nested { courtId: { dateKey: { slotKey: booking } } }
 async function getBookingsFromDb() {
-  if (!dbPool) return bookings; // fallback ke cache
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return bookings;
+  }
   try {
     const [rows] = await executeQuery(
       `SELECT court_id, date_key, slot_key, name, phone, booker_type, guest_id,
@@ -155,7 +158,10 @@ async function getBookingsFromDb() {
 
 // Simpan satu slot booking ke TiDB (INSERT or UPDATE)
 async function saveBookingToDb(courtId, dateKey, slotKey, booking) {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     await executeQuery(
       `INSERT INTO bookings
@@ -192,7 +198,10 @@ async function saveBookingToDb(courtId, dateKey, slotKey, booking) {
 
 // Update status & paid satu booking berdasarkan order_id
 async function updateBookingStatusByOrderId(orderId, status, paid) {
-  if (!dbPool) return null;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return null;
+  }
   try {
     await executeQuery(
       `UPDATE bookings SET status = ?, paid = ? WHERE order_id = ?`,
@@ -233,7 +242,10 @@ async function updateBookingStatusByOrderId(orderId, status, paid) {
 
 // Cari booking berdasarkan order_id
 async function getBookingByOrderId(orderId) {
-  if (!dbPool) return null;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return null;
+  }
   try {
     const [rows] = await executeQuery(
       `SELECT court_id, date_key, slot_key, name, phone, booker_type, guest_id,
@@ -262,7 +274,10 @@ async function getBookingByOrderId(orderId) {
 
 // Hapus satu slot booking dari TiDB
 async function deleteBookingFromDb(courtId, dateKey, slotKey) {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     await executeQuery(
       `DELETE FROM bookings WHERE court_id = ? AND date_key = ? AND slot_key = ?`,
@@ -279,7 +294,10 @@ async function deleteBookingFromDb(courtId, dateKey, slotKey) {
 
 // Hapus booking berdasarkan order_id
 async function deleteBookingByOrderId(orderId) {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     // ambil data dulu untuk update cache
     const found = await getBookingByOrderId(orderId);
@@ -302,7 +320,10 @@ async function deleteBookingByOrderId(orderId) {
 
 // Ambil semua member dari TiDB, rebuild ke format { username: memberData }
 async function getMembersFromDb() {
-  if (!dbPool) return members; // fallback ke cache
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return members;
+  }
   try {
     const result = {};
 
@@ -342,7 +363,10 @@ async function getMembersFromDb() {
 
 // Simpan satu member ke TiDB (INSERT or UPDATE)
 async function saveMemberToDb(username, memberData) {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     const isMember = (memberData.isMember === true || memberData.isMember === 'true' || memberData.isMember === 1);
 
@@ -400,7 +424,10 @@ async function saveMemberToDb(username, memberData) {
 
 // Hapus satu member dari TiDB
 async function deleteMemberFromDb(username) {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     await executeQuery(`DELETE FROM members WHERE username = ?`, [username]);
     await executeQuery(`DELETE FROM guests WHERE name = ? AND password IS NOT NULL`, [username]);
@@ -412,7 +439,10 @@ async function deleteMemberFromDb(username) {
 
 // Sinkronisasi data ke TiDB
 async function syncMembersToDatabase() {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     for (const [username, memberData] of Object.entries(members)) {
       await saveMemberToDb(username, memberData);
@@ -424,7 +454,10 @@ async function syncMembersToDatabase() {
 }
 
 async function syncBookingsToDatabase() {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     for (const [courtId, dates] of Object.entries(bookings)) {
       for (const [dateKey, slots] of Object.entries(dates)) {
@@ -453,7 +486,10 @@ function saveMembersToFile() {
 
 // Simpan atau update tamu ke TiDB, return guest_id
 async function upsertGuest(name, phone) {
-  if (!dbPool) return null;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return null;
+  }
   try {
     await executeQuery(
       `INSERT INTO guests (name, phone, user_type)
@@ -474,7 +510,10 @@ async function upsertGuest(name, phone) {
 
 // Ambil semua tamu dari TiDB
 async function getGuestsFromDatabase() {
-  if (!dbPool) return [];
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return [];
+  }
   try {
     const [rows] = await executeQuery(
       `SELECT id, name, phone, user_type, created_at FROM guests ORDER BY created_at DESC`
@@ -491,7 +530,10 @@ async function getGuestsFromDatabase() {
 // ─────────────────────────────────────────────────────────────
 
 async function savePaymentRecordToDatabase({ orderId, amount, paymentType = 'qris', orderType = 'booking', status = 'paid' }) {
-  if (!dbPool) return;
+  if (!dbPool) {
+    const pool = await getDbPool();
+    if (!pool) return;
+  }
   try {
     await executeQuery(
       `INSERT INTO payments (order_id, order_type, amount, payment_type, status) VALUES (?, ?, ?, ?, ?)`,
@@ -507,7 +549,8 @@ async function savePaymentRecordToDatabase({ orderId, amount, paymentType = 'qri
 // ─────────────────────────────────────────────────────────────
 
 async function getAdminAccount(username = adminConfig.username) {
-  if (dbPool) {
+  const pool = await getDbPool();
+  if (pool) {
     try {
       const [rows] = await executeQuery(
         'SELECT * FROM admin_credentials WHERE username = ? LIMIT 1',
@@ -528,7 +571,8 @@ async function getAdminAccount(username = adminConfig.username) {
 }
 
 async function saveAdminAccount(nextConfig = {}) {
-  if (dbPool) {
+  const pool = await getDbPool();
+  if (pool) {
     try {
       const username = nextConfig.username || adminConfig.username;
       const password = nextConfig.password || adminConfig.password;
