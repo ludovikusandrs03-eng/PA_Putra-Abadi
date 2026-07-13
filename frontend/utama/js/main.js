@@ -8,9 +8,22 @@ let registeredMembers = {
     "Bryan": { phone: "08777776666", password: "123", isMember: true, expiryDate: oneMonthFromNow.toISOString() }
 };
 
+function findMemberCaseInsensitive(username) {
+    if (!username) return null;
+    const lowerUser = username.toLowerCase().trim();
+    for (const [key, val] of Object.entries(registeredMembers)) {
+        if (key.toLowerCase().trim() === lowerUser) {
+            return { username: key, data: val };
+        }
+    }
+    return null;
+}
+
 function isUserActiveMember(u) {
-    if (!u || !registeredMembers[u]) return false;
-    const memberData = registeredMembers[u];
+    if (!u) return false;
+    const memberObj = findMemberCaseInsensitive(u);
+    if (!memberObj) return false;
+    const memberData = memberObj.data;
     if (!memberData.isMember) return false;
     if (!memberData.expiryDate) return false;
     return new Date() < new Date(memberData.expiryDate);
@@ -64,10 +77,17 @@ window.addEventListener('DOMContentLoaded', () => {
         adminLink.setAttribute('href', '/frontend/admin/index.html');
     }
 
+    // Pulihkan sesi login user jika ada
+    const savedUser = sessionStorage.getItem('loggedInUser');
+    if (savedUser) {
+        loggedInUser = savedUser;
+        document.getElementById('member-status-text').textContent = savedUser;
+    }
+
     // Muat data dari backend saat inisialisasi
     Promise.all([
-        fetch(`${API_URL}/members`).then(res => res.json()),
-        fetch(`${API_URL}/bookings`).then(res => res.json())
+        fetch(`${API_URL}/members?t=${Date.now()}`).then(res => res.json()),
+        fetch(`${API_URL}/bookings?t=${Date.now()}`).then(res => res.json())
     ])
     .then(([membersData, bookingsData]) => {
         registeredMembers = membersData;
@@ -75,6 +95,15 @@ window.addEventListener('DOMContentLoaded', () => {
         console.log('Data member & booking dimuat dari backend.');
         updatePills(); 
         updateJoinMemberBtn(); 
+
+        // Update tampilan visual tombol navigasi member jika login aktif dipulihkan
+        if (loggedInUser) {
+            if (isUserActiveMember(loggedInUser)) {
+                document.getElementById('nav-member-btn').style.background = '#16a34a';
+            } else {
+                document.getElementById('nav-member-btn').style.background = 'var(--red)';
+            }
+        }
     })
     .catch(err => {
         console.warn('Backend offline, menggunakan data default lokal:', err);
@@ -115,10 +144,12 @@ function loginMemberProcess() {
     const p = document.getElementById('log-password').value;
     if(!u || !p){ alert('Isi semua kolom!'); return; }
 
-    if(registeredMembers[u] && registeredMembers[u].password === p) {
-        loggedInUser = u;
-        document.getElementById('member-status-text').textContent = u;
-        if (isUserActiveMember(u)) {
+    const memberObj = findMemberCaseInsensitive(u);
+    if(memberObj && memberObj.data.password === p) {
+        loggedInUser = memberObj.username;
+        sessionStorage.setItem('loggedInUser', loggedInUser);
+        document.getElementById('member-status-text').textContent = loggedInUser;
+        if (isUserActiveMember(loggedInUser)) {
             document.getElementById('nav-member-btn').style.background = '#16a34a';
         } else {
             document.getElementById('nav-member-btn').style.background = 'var(--red)';
@@ -134,6 +165,7 @@ function loginMemberProcess() {
 
 function logoutMember() {
     loggedInUser = null; 
+    sessionStorage.removeItem('loggedInUser');
     document.getElementById('member-status-text').textContent = "Login";
     document.getElementById('nav-member-btn').style.background = 'var(--red)';
     updateJoinMemberBtn();
@@ -142,9 +174,11 @@ function logoutMember() {
 
 // PROFILE ACTIONS
 function openEditProfileForm() {
-    if (!loggedInUser || !registeredMembers[loggedInUser]) return;
-    const user = registeredMembers[loggedInUser];
-    document.getElementById('edit-name').value = loggedInUser;
+    if (!loggedInUser) return;
+    const memberObj = findMemberCaseInsensitive(loggedInUser);
+    if (!memberObj) return;
+    const user = memberObj.data;
+    document.getElementById('edit-name').value = memberObj.username;
     document.getElementById('edit-phone').value = user.phone;
     document.getElementById('edit-password').value = user.password;
     switchMemberView('edit-profile');
@@ -196,16 +230,46 @@ function registerMemberProcess() {
     const ph = document.getElementById('reg-phone').value.trim();
     const pass = document.getElementById('reg-password').value;
     if(!n || !ph || !pass){ alert('Lengkapi form!'); return; }
+    
+    // Simpan ke local cache di frontend
     registeredMembers[n] = { phone: ph, password: pass, isMember: false };
-    syncMembersToBackend();
     
-    alert('Pembuatan akun berhasil! Silakan login menggunakan akun Anda.');
-    
-    document.getElementById('reg-name').value = '';
-    document.getElementById('reg-phone').value = '';
-    document.getElementById('reg-password').value = '';
-    
-    switchMemberView('login');
+    // Tunjukkan loader
+    const regForm = document.getElementById('member-register-form');
+    const submitBtn = regForm.querySelector('button[type="submit"]');
+    const oldText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Mendaftar...';
+
+    // Sync ke backend dan tunggu responsnya
+    fetch(`${API_URL}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(registeredMembers)
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Server error');
+        return res.json();
+    })
+    .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = oldText;
+        alert('Pembuatan akun berhasil! Silakan login menggunakan akun Anda.');
+        
+        document.getElementById('reg-name').value = '';
+        document.getElementById('reg-phone').value = '';
+        document.getElementById('reg-password').value = '';
+        
+        switchMemberView('login');
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = oldText;
+        // Hapus dari cache karena gagal
+        delete registeredMembers[n];
+        alert('Pendaftaran gagal! Terjadi gangguan koneksi ke database. Silakan coba lagi.');
+        console.error(err);
+    });
 }
 
 // MEMBER MODAL
