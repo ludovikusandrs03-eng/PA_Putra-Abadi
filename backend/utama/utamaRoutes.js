@@ -5,9 +5,10 @@ const shared = require('../shared');
 // Health Check & Integration Status
 router.get('/status', async (req, res) => {
   let dbStatus = 'disconnected';
-  if (shared.dbPool) {
+  const pool = await shared.getDbPool();
+  if (pool) {
     try {
-      await shared.dbPool.query('SELECT 1');
+      await pool.query('SELECT 1');
       dbStatus = 'connected';
     } catch (err) {
       dbStatus = `error: ${err.message}`;

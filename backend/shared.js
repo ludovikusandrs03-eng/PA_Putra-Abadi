@@ -655,9 +655,23 @@ async function initializeAdminAccount() {
 }
 
 let dbConnectionError = null;
+let poolPromise = null;
 
-if (process.env.TIDB_HOST) {
-  (async () => {
+// Load data awal dari JSON sebagai fallback di awal
+_loadJsonFallback();
+
+async function getDbPool() {
+  if (dbPool) return dbPool;
+  if (!process.env.TIDB_HOST) {
+    dbConnectionError = 'TIDB_HOST environment variable not found.';
+    return null;
+  }
+
+  if (poolPromise) {
+    return poolPromise;
+  }
+
+  poolPromise = (async () => {
     try {
       const dbName = process.env.TIDB_DATABASE || 'putra_abadi';
       // Ganti - dengan _ agar nama aman sebagai identifier SQL
@@ -684,17 +698,18 @@ if (process.env.TIDB_HOST) {
       await getBookingsFromDb();
       console.log('Data members & bookings loaded from TiDB into cache.');
 
+      dbConnectionError = null;
+      return dbPool;
     } catch (err) {
       dbConnectionError = err.message;
       console.error('Gagal inisialisasi TiDB, fallback ke mode lokal JSON:', err.message);
-      // Fallback: load dari JSON jika ada
-      _loadJsonFallback();
+      dbPool = null;
+      poolPromise = null; // Reset agar request berikutnya bisa mencoba kembali
+      return null;
     }
   })();
-} else {
-  dbConnectionError = 'TIDB_HOST environment variable not found.';
-  console.log('Warning: TIDB_HOST not found in .env, running in local JSON fallback mode.');
-  _loadJsonFallback();
+
+  return poolPromise;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -702,11 +717,12 @@ if (process.env.TIDB_HOST) {
 // TiDB Cloud Serverless bisa memutus koneksi idle → perlu retry
 // ─────────────────────────────────────────────────────────────
 async function executeQuery(sql, params = []) {
-  if (!dbPool) return [[], []];
+  const pool = await getDbPool();
+  if (!pool) return [[], []];
 
   const RECONNECTABLE = ['ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT', 'PROTOCOL_CONNECTION_LOST'];
 
-  const tryQuery = async () => dbPool.query(sql, params);
+  const tryQuery = async () => pool.query(sql, params);
 
   try {
     return await tryQuery();
@@ -720,10 +736,11 @@ async function executeQuery(sql, params = []) {
         // Tutup pool lama dan buat pool baru
         const dbName = process.env.TIDB_DATABASE || 'putra_abadi';
         const safeName = dbName.replace(/-/g, '_');
-        try { await dbPool.end(); } catch (_) {}
+        try { await pool.end(); } catch (_) {}
         dbPool = mysql.createPool({ ...baseDbConfig, database: safeName });
+        poolPromise = Promise.resolve(dbPool);
         console.log('[TiDB] Reconnected berhasil.');
-        return await tryQuery();
+        return await dbPool.query(sql, params);
       } catch (reconnErr) {
         console.error('[TiDB] Reconnect gagal:', reconnErr.message);
         throw reconnErr;
@@ -889,6 +906,7 @@ async function confirmPayment(orderId, paymentType = 'qris', actualAmountPaid) {
 module.exports = {
   get dbPool() { return dbPool; },
   get dbConnectionError() { return dbConnectionError; },
+  getDbPool,
   get bookings() { return bookings; },
   set bookings(val) { bookings = val; },
   get members() { return members; },
