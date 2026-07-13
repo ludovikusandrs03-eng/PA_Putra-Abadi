@@ -21,7 +21,6 @@ router.get('/status', async (req, res) => {
     status: 'online',
     integrations: {
       tidb: dbStatus,
-      cloudinary: process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name' ? 'configured' : 'mocked',
       resend: shared.resend ? 'configured' : 'mocked',
       fonnte: process.env.FONNTE_TOKEN ? 'configured' : 'mocked',
       midtrans: shared.isMidtransConfigured ? 'configured' : 'mocked'
@@ -29,35 +28,18 @@ router.get('/status', async (req, res) => {
   });
 });
 
-// Upload Payment Receipt
+// Upload Payment Receipt (Mocked)
 router.post('/upload-receipt', async (req, res) => {
   const { imageBase64 } = req.body;
   if (!imageBase64) {
     return res.status(400).json({ error: 'imageBase64 payload is required' });
   }
-
-  try {
-    if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name') {
-      const uploadResponse = await shared.cloudinary.uploader.upload(imageBase64, {
-        folder: 'putra_abadi_receipts'
-      });
-      return res.json({
-        success: true,
-        imageUrl: uploadResponse.secure_url,
-        publicId: uploadResponse.public_id
-      });
-    } else {
-      console.log('Mocked Receipt Upload: Received image base64 data.');
-      return res.json({
-        success: true,
-        imageUrl: 'https://via.placeholder.com/400x600.png?text=Bukti+Transfer+Mock',
-        mock: true
-      });
-    }
-  } catch (err) {
-    console.error('Upload Error:', err);
-    res.status(500).json({ error: err.message });
-  }
+  console.log('Mocked Receipt Upload: Received image base64 data.');
+  return res.json({
+    success: true,
+    imageUrl: 'https://via.placeholder.com/400x600.png?text=Bukti+Transfer+Mock',
+    mock: true
+  });
 });
 
 // Send Notification Email

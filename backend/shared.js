@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 const mysql = require('mysql2/promise');
-const cloudinary = require('cloudinary').v2;
 const { Resend } = require('resend');
 const { Snap } = require('midtrans-client');
 
@@ -43,19 +42,7 @@ const baseDbConfig = {
   connectTimeout: 15000            // timeout koneksi 15 detik
 };
 
-// ─────────────────────────────────────────────────────────────
-// Cloudinary
-// ─────────────────────────────────────────────────────────────
-if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name') {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-  });
-  console.log('Cloudinary SDK configured.');
-} else {
-  console.log('Warning: Cloudinary credentials not found in .env, running uploads in mock mode.');
-}
+
 
 // ─────────────────────────────────────────────────────────────
 // Resend
@@ -955,7 +942,6 @@ module.exports = {
   set bookings(val) { bookings = val; },
   get members() { return members; },
   set members(val) { members = val; },
-  cloudinary,
   resend,
   get snap() { return snap; },
   isMidtransConfigured,
