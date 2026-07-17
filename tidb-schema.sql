@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS admin_credentials (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   username   VARCHAR(50)  NOT NULL UNIQUE,
-  password   VARCHAR(255) NOT NULL,
+  password   VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   email      VARCHAR(255) DEFAULT '',
   updated_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -18,7 +18,7 @@ ON DUPLICATE KEY UPDATE
 CREATE TABLE IF NOT EXISTS members (
   username    VARCHAR(100) PRIMARY KEY,
   phone       VARCHAR(30)  DEFAULT '',
-  password    VARCHAR(255) NOT NULL,
+  password    VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   is_member   BOOLEAN      DEFAULT FALSE,
   expiry_date VARCHAR(50)  DEFAULT '',
   created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS guests (
   id         INT AUTO_INCREMENT PRIMARY KEY,
   name       VARCHAR(150) NOT NULL,
   phone      VARCHAR(30)  NOT NULL,
-  password   VARCHAR(255) DEFAULT NULL,
+  password   VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   user_type  VARCHAR(20)  NOT NULL DEFAULT 'guest',
   created_at TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
   -- Satu tamu diidentifikasi oleh kombinasi nama + nomor HP

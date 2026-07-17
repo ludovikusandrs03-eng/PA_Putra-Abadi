@@ -569,7 +569,7 @@ async function ensureAppTables() {
       CREATE TABLE IF NOT EXISTS admin_credentials (
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL,
+        password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
         email VARCHAR(255) DEFAULT '',
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
@@ -579,7 +579,7 @@ async function ensureAppTables() {
       CREATE TABLE IF NOT EXISTS members (
         username VARCHAR(100) PRIMARY KEY,
         phone VARCHAR(30) DEFAULT '',
-        password VARCHAR(255) NOT NULL,
+        password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
         is_member BOOLEAN DEFAULT FALSE,
         expiry_date VARCHAR(50) DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -591,7 +591,7 @@ async function ensureAppTables() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(150) NOT NULL,
         phone VARCHAR(30) NOT NULL,
-        password VARCHAR(255) DEFAULT NULL,
+        password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
         user_type VARCHAR(20) NOT NULL DEFAULT 'guest',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uk_guest (name, phone)
@@ -599,7 +599,20 @@ async function ensureAppTables() {
     `);
 
     await dbPool.query(`
-      ALTER TABLE guests ADD COLUMN IF NOT EXISTS password VARCHAR(255) DEFAULT NULL
+      ALTER TABLE guests ADD COLUMN IF NOT EXISTS password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL
+    `);
+
+    // Ensure existing databases also modify their password columns to enforce case sensitivity
+    await dbPool.query(`
+      ALTER TABLE admin_credentials MODIFY COLUMN password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+    `);
+
+    await dbPool.query(`
+      ALTER TABLE members MODIFY COLUMN password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL
+    `);
+
+    await dbPool.query(`
+      ALTER TABLE guests MODIFY COLUMN password VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL
     `);
 
     await dbPool.query(`
