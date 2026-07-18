@@ -3,11 +3,11 @@ oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
 
 let registeredMembers = {};
 
-function findMemberCaseInsensitive(username) {
+function findMemberCaseSensitive(username) {
     if (!username) return null;
-    const lowerUser = username.toLowerCase().trim();
+    const trimmed = username.trim();
     for (const [key, val] of Object.entries(registeredMembers)) {
-        if (key.toLowerCase().trim() === lowerUser) {
+        if (key.trim() === trimmed) {
             return { username: key, data: val };
         }
     }
@@ -16,7 +16,7 @@ function findMemberCaseInsensitive(username) {
 
 function isUserActiveMember(u) {
     if (!u) return false;
-    const memberObj = findMemberCaseInsensitive(u);
+    const memberObj = findMemberCaseSensitive(u);
     if (!memberObj) return false;
     const memberData = memberObj.data;
     if (!memberData.isMember) return false;
@@ -145,7 +145,7 @@ function loginMemberProcess() {
         registeredMembers = data;
         
         // Lakukan verifikasi login
-        const memberObj = findMemberCaseInsensitive(u);
+        const memberObj = findMemberCaseSensitive(u);
         if(memberObj && memberObj.data.password === p) {
             loggedInUser = memberObj.username;
             sessionStorage.setItem('loggedInUser', loggedInUser);
@@ -169,7 +169,7 @@ function loginMemberProcess() {
     .catch(err => {
         console.error(err);
         // Jika server bermasalah, coba verifikasi dengan cache lokal yang ada
-        const memberObj = findMemberCaseInsensitive(u);
+        const memberObj = findMemberCaseSensitive(u);
         if(memberObj && memberObj.data.password === p) {
             loggedInUser = memberObj.username;
             sessionStorage.setItem('loggedInUser', loggedInUser);
@@ -204,7 +204,7 @@ function logoutMember() {
 // PROFILE ACTIONS
 function openEditProfileForm() {
     if (!loggedInUser) return;
-    const memberObj = findMemberCaseInsensitive(loggedInUser);
+    const memberObj = findMemberCaseSensitive(loggedInUser);
     if (!memberObj) return;
     const user = memberObj.data;
     document.getElementById('edit-name').value = memberObj.username;
